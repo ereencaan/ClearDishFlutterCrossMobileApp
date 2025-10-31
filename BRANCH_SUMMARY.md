@@ -73,4 +73,3 @@ Detaylı workflow: `GIT_WORKFLOW.md`
 ---
 
 **Hazırsın! 🎊**
-

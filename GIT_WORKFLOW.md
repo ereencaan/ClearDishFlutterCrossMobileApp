@@ -134,4 +134,3 @@ git push origin bengisu
 ---
 
 **Sorun mu var?** `.gitignore` dosyasını kontrol et, gerekirse ekle!
-
