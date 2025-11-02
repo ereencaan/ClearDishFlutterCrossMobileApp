@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/features/auth/controllers/auth_controller.dart';
+import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/app_input.dart';
 
 /// Register screen
-/// 
+///
 /// Allows users to create a new account.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -154,4 +155,3 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
-

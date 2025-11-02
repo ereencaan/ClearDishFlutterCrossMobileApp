@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Application theme configuration
-/// 
+///
 /// Supports light and dark mode with Material 3 design system.
 class AppTheme {
   // Color palette - using dark green as primary color
@@ -49,7 +49,7 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -91,7 +91,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -100,4 +100,3 @@ class AppTheme {
     );
   }
 }
-

@@ -31,4 +31,7 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
-
+    # Exclude embedded Flutter SDK from analysis (prevents SDK test files from being analyzed)
+    - "flutter/**"
+    - "**/flutter/**"
+    - ".dart_tool/**"

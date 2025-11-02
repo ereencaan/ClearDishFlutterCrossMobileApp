@@ -1,6 +1,6 @@
 {
   // Flutter & Dart Settings
-  "dart.flutterSdkPath": null,
+  "dart.flutterSdkPath": "${workspaceFolder}/flutter",
   "dart.debugExternalPackageLibraries": false,
   "dart.debugSdkLibraries": false,
   "dart.enableSdkFormatter": true,
@@ -36,8 +36,16 @@
   "search.exclude": {
     "**/build": true,
     "**/.dart_tool": true,
-    "**/node_modules": true
+    "**/node_modules": true,
+    "**/flutter": true
   },
+
+  // Dart analysis exclude
+  "dart.analysisExcludedFolders": [
+    "${workspaceFolder}/flutter",
+    "${workspaceFolder}/build",
+    "C:/Users/ereen/AppData/Roaming/Cursor/User/History"
+  ],
 
   // Dart/Flutter specific
   "[dart]": {

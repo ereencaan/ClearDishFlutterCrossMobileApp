@@ -1,22 +1,22 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Authentication API
-/// 
+///
 /// Handles authentication operations with Supabase Auth.
 class AuthApi {
   AuthApi(this._client);
   final SupabaseClient _client;
 
   /// Gets current user
-  User? get currentUser => _client.auth.currentUser;
+  supabase.User? get currentUser => _client.auth.currentUser;
 
   /// Stream of auth state changes
-  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+  Stream<supabase.AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
   /// Signs in with email and password
-  Future<Result<Session>> signIn({
+  Future<Result<supabase.Session>> signIn({
     required String email,
     required String password,
   }) async {
@@ -26,7 +26,7 @@ class AuthApi {
         password: password,
       );
       return Success(response.session!);
-    } on AuthException catch (e) {
+    } on supabase.AuthException catch (e) {
       return Failure(e.message);
     } catch (e) {
       return Failure('An unexpected error occurred: ${e.toString()}');
@@ -34,7 +34,7 @@ class AuthApi {
   }
 
   /// Registers a new user
-  Future<Result<Session>> signUp({
+  Future<Result<supabase.Session>> signUp({
     required String email,
     required String password,
   }) async {
@@ -47,7 +47,7 @@ class AuthApi {
         return Failure('Registration successful but session is null');
       }
       return Success(response.session!);
-    } on AuthException catch (e) {
+    } on supabase.AuthException catch (e) {
       return Failure(e.message);
     } catch (e) {
       return Failure('An unexpected error occurred: ${e.toString()}');
@@ -64,4 +64,3 @@ class AuthApi {
     }
   }
 }
-

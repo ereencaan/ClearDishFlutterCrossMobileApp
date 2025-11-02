@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/features/auth/controllers/auth_controller.dart';
+import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/app_input.dart';
 
 /// Login screen
-/// 
+///
 /// Allows users to sign in with email and password.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -142,4 +143,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

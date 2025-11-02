@@ -1,10 +1,9 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Restaurant API
-/// 
+///
 /// Handles restaurant data operations with Supabase.
 class RestaurantApi {
   RestaurantApi(this._client);
@@ -37,7 +36,7 @@ class RestaurantApi {
           ).single();
 
       final restaurant = Restaurant.fromMap(
-        response as Map<String, dynamic>,
+        response,
       );
 
       return Success(restaurant);
@@ -46,4 +45,3 @@ class RestaurantApi {
     }
   }
 }
-

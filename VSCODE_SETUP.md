@@ -174,3 +174,4 @@ Artık VS Code'da:
 - [Flutter VS Code Setup](https://docs.flutter.dev/get-started/editor?tab=vscode)
 - [Dart Extension Docs](https://dartcode.org/)
 - [VS Code Keyboard Shortcuts](https://code.visualstudio.com/docs/getstarted/keybindings)
+

@@ -70,3 +70,4 @@ create index idx_menu_categories_restaurant on public.menu_categories(restaurant
 create index idx_menu_items_restaurant on public.menu_items(restaurant_id);
 create index idx_menu_items_category on public.menu_items(category_id);
 
+

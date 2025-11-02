@@ -59,3 +59,4 @@ class UserProfile extends Equatable {
   List<Object?> get props => [userId, fullName, allergens, diets];
 }
 
+

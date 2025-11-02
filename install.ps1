@@ -93,3 +93,4 @@ Write-Host "   4. flutter run komutuyla uygulamayı başlat" -ForegroundColor Wh
 Write-Host "`n📚 Detaylı kılavuz: KURULUM.md dosyasına bak" -ForegroundColor Cyan
 Write-Host "`n🚀 Uygulamayı çalıştırmak için: flutter run" -ForegroundColor Green
 
+

@@ -46,3 +46,4 @@ class Restaurant extends Equatable {
   List<Object?> get props => [id, name, address, visible, createdAt];
 }
 
+

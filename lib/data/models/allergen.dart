@@ -42,3 +42,4 @@ class Allergen extends Equatable {
   List<Object?> get props => [id, name, icon];
 }
 
+

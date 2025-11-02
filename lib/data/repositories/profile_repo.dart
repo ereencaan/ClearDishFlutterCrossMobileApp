@@ -1,10 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Profile repository
-/// 
+///
 /// Handles user profile operations with Supabase.
 class ProfileRepo {
   ProfileRepo() : _client = SupabaseClient.instance;
@@ -82,3 +82,5 @@ class ProfileRepo {
   }
 }
 
+/// Profile repository provider
+final profileRepoProvider = Provider<ProfileRepo>((ref) => ProfileRepo());

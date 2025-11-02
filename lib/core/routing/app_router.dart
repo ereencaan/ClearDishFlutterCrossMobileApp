@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/features/auth/presentation/login_screen.dart';
 import 'package:cleardish/features/auth/presentation/register_screen.dart';
@@ -9,10 +8,10 @@ import 'package:cleardish/features/restaurants/presentation/restaurant_detail_sc
 import 'package:cleardish/features/menu/presentation/menu_screen.dart';
 import 'package:cleardish/features/profile/presentation/profile_screen.dart';
 import 'package:cleardish/features/subscription/presentation/subscription_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 /// Application router configuration
-/// 
+///
 /// Handles navigation and route management using go_router.
 final class AppRouter {
   static final GoRouter router = GoRouter(
@@ -76,7 +75,7 @@ final class AppRouter {
       ),
     ],
     redirect: (context, state) {
-      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+      final isLoggedIn = supabase.Supabase.instance.client.auth.currentUser != null;
       final isOnAuthScreen = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
       final isOnOnboarding = state.matchedLocation == '/onboarding';
@@ -95,4 +94,3 @@ final class AppRouter {
     },
   );
 }
-

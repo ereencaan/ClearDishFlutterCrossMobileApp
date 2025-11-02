@@ -1,10 +1,10 @@
 import 'package:cleardish/data/sources/auth_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/core/utils/result.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 /// Authentication repository
-/// 
+///
 /// Provides authentication operations and state management.
 class AuthRepo {
   AuthRepo() : _api = AuthApi(SupabaseClient.instance);
@@ -12,13 +12,13 @@ class AuthRepo {
   final AuthApi _api;
 
   /// Gets current user
-  User? get currentUser => _api.currentUser;
+  supabase.User? get currentUser => _api.currentUser;
 
   /// Stream of auth state changes
-  Stream<AuthState> get authStateChanges => _api.authStateChanges;
+  Stream<supabase.AuthState> get authStateChanges => _api.authStateChanges;
 
   /// Signs in with email and password
-  Future<Result<Session>> login({
+  Future<Result<supabase.Session>> login({
     required String email,
     required String password,
   }) async {
@@ -26,7 +26,7 @@ class AuthRepo {
   }
 
   /// Registers a new user
-  Future<Result<Session>> register({
+  Future<Result<supabase.Session>> register({
     required String email,
     required String password,
   }) async {
@@ -38,4 +38,3 @@ class AuthRepo {
     return _api.signOut();
   }
 }
-

@@ -4,12 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/features/profile/controllers/profile_controller.dart';
 import 'package:cleardish/features/auth/controllers/auth_controller.dart';
+import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/allergen.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/chips_filter.dart';
 
 /// Profile screen
-/// 
+///
 /// Allows users to view and edit their profile, allergens, and diets.
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -178,4 +179,3 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 }
-
