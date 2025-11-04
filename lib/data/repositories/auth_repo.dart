@@ -29,8 +29,9 @@ class AuthRepo {
   Future<Result<supabase.Session>> register({
     required String email,
     required String password,
+    Map<String, dynamic>? metadata,
   }) async {
-    return _api.signUp(email: email, password: password);
+    return _api.signUp(email: email, password: password, data: metadata);
   }
 
   /// Signs out current user

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/repositories/auth_repo.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cleardish/features/auth/models/auth_role.dart';
 
 /// Auth repository provider
 final authRepoProvider = Provider<AuthRepo>((ref) {
@@ -54,6 +55,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<Result<void>> login({
     required String email,
     required String password,
+    AuthRole? expectedRole,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     final result = await _authRepo.login(email: email, password: password);
@@ -62,22 +64,39 @@ class AuthController extends StateNotifier<AuthState> {
       error: result.isFailure ? result.errorOrNull : null,
       user: result.isSuccess ? _authRepo.currentUser : null,
     );
-    return result.map((_) => null);
+    if (result.isFailure) return result.map((_) {});
+
+    // Optional role verification via user metadata
+    if (expectedRole != null) {
+      final role = state.user?.userMetadata?['role'] as String?;
+      if (role != expectedRole.name) {
+        await _authRepo.signOut();
+        state = state.copyWith(user: null, error: 'Wrong portal for this account');
+        return Failure('Wrong portal for this account');
+      }
+    }
+
+    return result.map((_) {});
   }
 
   /// Registers a new user
   Future<Result<void>> register({
     required String email,
     required String password,
+    required AuthRole role,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
-    final result = await _authRepo.register(email: email, password: password);
+    final result = await _authRepo.register(
+      email: email,
+      password: password,
+      metadata: {'role': role.name},
+    );
     state = state.copyWith(
       isLoading: false,
       error: result.isFailure ? result.errorOrNull : null,
       user: result.isSuccess ? _authRepo.currentUser : null,
     );
-    return result.map((_) => null);
+    return result.map((_) {});
   }
 
   /// Signs out current user
@@ -98,5 +117,3 @@ final authControllerProvider =
     StateNotifierProvider<AuthController, AuthState>((ref) {
   return AuthController(ref.watch(authRepoProvider));
 });
-
-

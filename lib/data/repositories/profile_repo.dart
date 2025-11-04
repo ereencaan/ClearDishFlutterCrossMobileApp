@@ -14,10 +14,14 @@ class ProfileRepo {
   /// Gets user profile by user ID
   Future<Result<UserProfile>> getProfile(String userId) async {
     try {
-      final response = await _client.supabaseClient.client.from('user_profiles').select().eq(
+      final response = await _client.supabaseClient.client
+          .from('user_profiles')
+          .select()
+          .eq(
             'user_id',
             userId,
-          ).maybeSingle();
+          )
+          .maybeSingle();
 
       if (response == null) {
         // Profile doesn't exist, return empty profile
@@ -27,7 +31,7 @@ class ProfileRepo {
       }
 
       final profile = UserProfile.fromMap(
-        response as Map<String, dynamic>,
+        response,
       );
 
       return Success(profile);
@@ -83,4 +87,6 @@ class ProfileRepo {
 }
 
 /// Profile repository provider
-final profileRepoProvider = Provider<ProfileRepo>((ref) => ProfileRepo());
+final profileRepoProvider = Provider<ProfileRepo>((ref) {
+  return ProfileRepo();
+});

@@ -28,6 +28,8 @@ dependencies:
 
   # Utilities
   equatable: ^2.0.5
+  geolocator: ^10.1.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -38,7 +40,6 @@ dev_dependencies:
   # Code generation
   build_runner: ^2.4.7
   riverpod_generator: ^2.3.9
-  riverpod_annotation: ^2.3.3
 
   # Testing
   mockito: ^5.4.4

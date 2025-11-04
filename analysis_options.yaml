@@ -3,7 +3,6 @@ include: package:flutter_lints/flutter.yaml
 linter:
   rules:
     - always_declare_return_types
-    - always_require_non_null_named_parameters
     - avoid_empty_else
     - avoid_print
     - avoid_relative_lib_imports

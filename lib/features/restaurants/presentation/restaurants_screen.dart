@@ -5,7 +5,7 @@ import 'package:cleardish/features/restaurants/controllers/restaurants_controlle
 import 'package:cleardish/features/restaurants/widgets/restaurant_card.dart';
 
 /// Restaurants list screen
-/// 
+///
 /// Displays a list of available restaurants with search functionality.
 class RestaurantsScreen extends ConsumerStatefulWidget {
   const RestaurantsScreen({super.key});
@@ -96,7 +96,9 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        ref.read(restaurantsControllerProvider.notifier).loadRestaurants();
+        await ref
+            .read(restaurantsControllerProvider.notifier)
+            .loadRestaurants();
       },
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -114,5 +116,3 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
     );
   }
 }
-
-

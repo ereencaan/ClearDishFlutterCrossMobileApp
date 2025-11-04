@@ -96,36 +96,37 @@ class MenuController extends StateNotifier<MenuState> {
       return;
     }
 
-    // Get user profile allergens
+    // Get user profile allergens and diets
     _profileRepo.getProfile(user.id).then((profileResult) {
       if (profileResult.isFailure || profileResult.dataOrNull == null) {
         return;
       }
 
       final userAllergens = profileResult.dataOrNull!.allergens;
-      if (userAllergens.isEmpty) {
-        state = state.copyWith(hiddenCount: 0);
-        return;
-      }
+      final userDiets = profileResult.dataOrNull!.diets;
 
-      // Count items that contain user allergens
-      final hiddenCount = state.menuItems
-          .where((item) => item.containsAllergens(userAllergens))
-          .length;
+      // Count items hidden due to allergens OR diet mismatch
+      final hiddenCount = state.menuItems.where((item) {
+        final hidesByAllergen = item.containsAllergens(userAllergens);
+        final hidesByDiet = !item.satisfiesDiets(userDiets);
+        return hidesByAllergen || hidesByDiet;
+      }).length;
 
       state = state.copyWith(hiddenCount: hiddenCount);
     });
   }
 
   /// Gets filtered menu items based on safe-only toggle
-  List<MenuItem> getFilteredItems(List<String> userAllergens) {
-    if (!state.safeOnly || userAllergens.isEmpty) {
+  List<MenuItem> getFilteredItems(List<String> userAllergens, List<String> userDiets) {
+    if (!state.safeOnly) {
       return state.menuItems;
     }
 
-    return state.menuItems
-        .where((item) => !item.containsAllergens(userAllergens))
-        .toList();
+    return state.menuItems.where((item) {
+      final safeFromAllergens = !item.containsAllergens(userAllergens);
+      final matchesDiets = item.satisfiesDiets(userDiets);
+      return safeFromAllergens && matchesDiets;
+    }).toList();
   }
 }
 
@@ -138,5 +139,3 @@ final menuControllerProvider = StateNotifierProvider.family<
     restaurantId,
   );
 });
-
-

@@ -4,12 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/features/onboarding/controllers/onboarding_controller.dart';
 import 'package:cleardish/features/profile/controllers/profile_controller.dart';
+import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/models/allergen.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/chips_filter.dart';
 
 /// Onboarding screen
-/// 
+///
 /// Allows users to select allergens and dietary preferences.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,6 +20,10 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _avatarUrlController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +32,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
         ref.read(profileControllerProvider.notifier).loadProfile(user.id);
+        final profile = ref.read(profileControllerProvider).profile;
+        if (profile != null) {
+          _nameController.text = profile.fullName ?? '';
+          _addressController.text = profile.address ?? '';
+          _avatarUrlController.text = profile.avatarUrl ?? '';
+        }
       }
     });
   }
@@ -40,6 +51,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     final onboardingState = ref.read(onboardingControllerProvider);
     final profileController = ref.read(profileControllerProvider.notifier);
+    final existing = ref.read(profileControllerProvider).profile;
+
+    final profile = UserProfile(
+      userId: user.id,
+      fullName: _nameController.text.trim().isEmpty
+          ? existing?.fullName
+          : _nameController.text.trim(),
+      address: _addressController.text.trim().isEmpty
+          ? existing?.address
+          : _addressController.text.trim(),
+      avatarUrl: _avatarUrlController.text.trim().isEmpty
+          ? existing?.avatarUrl
+          : _avatarUrlController.text.trim(),
+      allergens: existing?.allergens ?? const [],
+      diets: existing?.diets ?? const [],
+    );
+
+    await profileController.saveProfile(profile);
 
     // Save allergens
     if (onboardingState.selectedAllergens.isNotEmpty) {
@@ -64,9 +93,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final onboardingState = ref.watch(onboardingControllerProvider);
-    final onboardingController = ref.read(onboardingControllerProvider.notifier);
+    final onboardingController =
+        ref.read(onboardingControllerProvider.notifier);
 
-    final allergenItems = Allergen.standardAllergens.map((a) => a.name).toList();
+    final allergenItems =
+        Allergen.standardAllergens.map((a) => a.name).toList();
     final dietItems = Allergen.standardDiets.map((d) => d.name).toList();
 
     return Scaffold(
@@ -88,8 +119,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Tell us about your allergens and dietary preferences',
+                'Tell us about yourself and your preferences',
                 style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _avatarUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Photo URL (optional)',
+                ),
               ),
               const SizedBox(height: 32),
               ChipsFilter(
@@ -126,5 +178,3 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 }
-
-

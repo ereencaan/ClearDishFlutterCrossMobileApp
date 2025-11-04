@@ -44,4 +44,30 @@ class RestaurantApi {
       return Failure('Failed to fetch restaurant: ${e.toString()}');
     }
   }
+
+  /// Gets nearby restaurants using RPC
+  Future<Result<List<Restaurant>>> getNearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5,
+  }) async {
+    try {
+      final response = await _client.supabaseClient.client.rpc(
+        'restaurants_nearby',
+        params: {
+          'p_lat': lat,
+          'p_lng': lng,
+          'p_radius_km': radiusKm,
+        },
+      );
+
+      final restaurants = (response as List)
+          .map((json) => Restaurant.fromMap(json as Map<String, dynamic>))
+          .toList();
+
+      return Success(restaurants);
+    } catch (e) {
+      return Failure('Failed to fetch nearby restaurants: ${e.toString()}');
+    }
+  }
 }

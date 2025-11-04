@@ -1,9 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'package:cleardish/data/repositories/profile_repo.dart';
 import 'package:cleardish/data/models/user_profile.dart';
-import 'package:cleardish/core/utils/result.dart';
 
 // Note: This is a basic test structure. For full testing, you would need
 // to set up mocks for Supabase client. This test demonstrates the pattern.
@@ -42,5 +38,3 @@ void main() {
     });
   });
 }
-
-

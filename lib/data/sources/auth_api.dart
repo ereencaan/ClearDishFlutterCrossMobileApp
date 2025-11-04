@@ -1,13 +1,13 @@
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase hide SupabaseClient;
 import 'package:cleardish/core/utils/result.dart';
-import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/sources/supabase_client.dart' as app;
 
 /// Authentication API
 ///
 /// Handles authentication operations with Supabase Auth.
 class AuthApi {
   AuthApi(this._client);
-  final SupabaseClient _client;
+  final app.SupabaseClient _client;
 
   /// Gets current user
   supabase.User? get currentUser => _client.auth.currentUser;
@@ -33,15 +33,17 @@ class AuthApi {
     }
   }
 
-  /// Registers a new user
+  /// Registers a new user with optional user metadata
   Future<Result<supabase.Session>> signUp({
     required String email,
     required String password,
+    Map<String, dynamic>? data,
   }) async {
     try {
       final response = await _client.auth.signUp(
         email: email,
         password: password,
+        data: data,
       );
       if (response.session == null) {
         return Failure('Registration successful but session is null');
