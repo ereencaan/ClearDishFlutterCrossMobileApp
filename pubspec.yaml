@@ -30,6 +30,7 @@ dependencies:
   equatable: ^2.0.5
   geolocator: ^10.1.0
   google_fonts: ^6.2.1
+  fl_chart: ^0.66.2
 
 dev_dependencies:
   flutter_test:

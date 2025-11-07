@@ -54,12 +54,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    // Navigate to onboarding or home
+    // Navigate by role
     final user = ref.read(authControllerProvider).user;
     if (user != null) {
-      // Check if profile exists and has allergens
-      // For now, always go to onboarding first
-      context.go('/onboarding');
+      if (widget.role == AuthRole.admin) {
+        context.go('/admin');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 

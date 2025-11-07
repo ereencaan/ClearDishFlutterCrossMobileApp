@@ -13,6 +13,9 @@ import 'package:cleardish/features/subscription/presentation/subscription_screen
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/features/restaurants/presentation/nearby_restaurants_screen.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_settings_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_dashboard_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_users_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart';
 
 /// Application router configuration
 ///
@@ -34,7 +37,8 @@ final class AppRouter {
       GoRoute(
         path: '/login/restaurant',
         name: 'login-restaurant',
-        builder: (context, state) => const LoginScreen(role: AuthRole.restaurant),
+        builder: (context, state) =>
+            const LoginScreen(role: AuthRole.restaurant),
       ),
       GoRoute(
         path: '/login/admin',
@@ -49,12 +53,28 @@ final class AppRouter {
       GoRoute(
         path: '/register/restaurant',
         name: 'register-restaurant',
-        builder: (context, state) => const RegisterScreen(role: AuthRole.restaurant),
+        builder: (context, state) =>
+            const RegisterScreen(role: AuthRole.restaurant),
       ),
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/admin',
+        name: 'admin-dashboard',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        name: 'admin-users',
+        builder: (context, state) => const AdminUsersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/activity',
+        name: 'admin-activity',
+        builder: (context, state) => const AdminActivityScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => HomeShell(child: child),
@@ -120,8 +140,13 @@ final class AppRouter {
         return '/welcome';
       }
 
-      // If logged in and on auth screen, redirect to home
+      // If logged in and on auth screen, redirect by role
       if (isLoggedIn && isOnAuthScreen) {
+        final role = Supabase
+            .instance.client.auth.currentUser?.userMetadata?['role'] as String?;
+        if (role == 'admin') {
+          return '/admin';
+        }
         return '/home';
       }
 

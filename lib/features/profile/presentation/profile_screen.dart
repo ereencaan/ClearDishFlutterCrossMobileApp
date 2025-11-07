@@ -21,11 +21,17 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _nameController = TextEditingController();
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    final user = Supabase.instance.client.auth.currentUser;
+    final role = user?.userMetadata?['role'] as String?;
+    _isAdmin = role == 'admin';
+    if (!_isAdmin) {
+      _loadProfile();
+    }
   }
 
   @override
@@ -106,6 +112,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileControllerProvider);
     final user = Supabase.instance.client.auth.currentUser;
+
+    // Admin profile: simple overview and actions, no onboarding fields
+    if (_isAdmin) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Admin Profile')),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.verified_user),
+                  title: Text(user?.email ?? 'Admin'),
+                  subtitle: const Text('Role: admin'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => context.go('/admin'),
+                child: const Text('Open Admin Dashboard'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _handleLogout,
+                child: const Text('Sign Out'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (profileState.isLoading && profileState.profile == null) {
       return const Scaffold(
