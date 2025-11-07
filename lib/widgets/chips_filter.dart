@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Chips filter widget for multi-select items
-/// 
+///
 /// Displays selectable chips with clear functionality.
 class ChipsFilter extends StatelessWidget {
   const ChipsFilter({
@@ -64,9 +64,10 @@ class ChipsFilter extends StatelessWidget {
               selected: isSelected,
               label: Text(item),
               onSelected: (_) => _toggleItem(item),
-              selectedColor: Theme.of(context).colorScheme.primary.withOpacity(
-                    0.3,
-                  ),
+              selectedColor: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.3),
               checkmarkColor: Theme.of(context).colorScheme.primary,
               labelStyle: TextStyle(
                 color: isSelected
@@ -81,4 +82,3 @@ class ChipsFilter extends StatelessWidget {
     );
   }
 }
-

@@ -52,7 +52,7 @@ class ProfileController extends StateNotifier<ProfileState> {
       error: result.isFailure ? result.errorOrNull : null,
       profile: result.dataOrNull,
     );
-    return result.map((_) => null);
+    return result.map((_) {});
   }
 
   /// Updates allergens list
@@ -67,7 +67,7 @@ class ProfileController extends StateNotifier<ProfileState> {
       error: result.isFailure ? result.errorOrNull : null,
       profile: result.dataOrNull,
     );
-    return result.map((_) => null);
+    return result.map((_) {});
   }
 
   /// Updates diets list
@@ -82,7 +82,7 @@ class ProfileController extends StateNotifier<ProfileState> {
       error: result.isFailure ? result.errorOrNull : null,
       profile: result.dataOrNull,
     );
-    return result.map((_) => null);
+    return result.map((_) {});
   }
 
   /// Saves full profile
@@ -94,7 +94,7 @@ class ProfileController extends StateNotifier<ProfileState> {
       error: result.isFailure ? result.errorOrNull : null,
       profile: result.dataOrNull,
     );
-    return result.map((_) => null);
+    return result.map((_) {});
   }
 }
 
@@ -103,4 +103,3 @@ final profileControllerProvider =
     StateNotifierProvider<ProfileController, ProfileState>((ref) {
   return ProfileController(ref.watch(profileRepoProvider));
 });
-

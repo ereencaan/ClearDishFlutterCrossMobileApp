@@ -157,3 +157,4 @@ Proje çalışıyor mu? 🎉
 - [Flutter + Supabase Guide](https://supabase.com/docs/guides/getting-started/flutter)
 - [ClearDish README](./README.md)
 
+

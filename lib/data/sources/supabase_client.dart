@@ -1,8 +1,8 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:cleardish/core/config/app_env.dart';
 
 /// Supabase client singleton
-/// 
+///
 /// Initializes and provides access to the Supabase client instance.
 class SupabaseClient {
   static SupabaseClient? _instance;
@@ -16,16 +16,15 @@ class SupabaseClient {
   /// Initializes Supabase with environment variables
   static Future<void> initialize() async {
     AppEnv.ensureConfigured();
-    await Supabase.initialize(
+    await supabase.Supabase.initialize(
       url: AppEnv.supabaseUrl,
       anonKey: AppEnv.supabaseAnonKey,
     );
   }
 
   /// Gets the Supabase client for authentication
-  GoTrueClient get auth => Supabase.instance.client.auth;
+  supabase.GoTrueClient get auth => supabase.Supabase.instance.client.auth;
 
   /// Gets the Supabase client instance for database operations
-  Supabase get supabaseClient => Supabase.instance;
+  supabase.Supabase get supabaseClient => supabase.Supabase.instance;
 }
-

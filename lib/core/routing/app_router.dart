@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/features/auth/presentation/login_screen.dart';
 import 'package:cleardish/features/auth/presentation/register_screen.dart';
+import 'package:cleardish/features/auth/models/auth_role.dart';
+import 'package:cleardish/features/auth/presentation/welcome_screen.dart';
 import 'package:cleardish/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:cleardish/features/home/presentation/home_shell.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurants_screen.dart';
@@ -10,28 +11,70 @@ import 'package:cleardish/features/menu/presentation/menu_screen.dart';
 import 'package:cleardish/features/profile/presentation/profile_screen.dart';
 import 'package:cleardish/features/subscription/presentation/subscription_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cleardish/features/restaurants/presentation/nearby_restaurants_screen.dart';
+import 'package:cleardish/features/restaurants/presentation/restaurant_settings_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_dashboard_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_users_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart';
 
 /// Application router configuration
-/// 
+///
 /// Handles navigation and route management using go_router.
 final class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/welcome',
     routes: [
       GoRoute(
-        path: '/login',
-        name: 'login',
-        builder: (context, state) => const LoginScreen(),
+        path: '/welcome',
+        name: 'welcome',
+        builder: (context, state) => const WelcomeScreen(),
       ),
       GoRoute(
-        path: '/register',
-        name: 'register',
-        builder: (context, state) => const RegisterScreen(),
+        path: '/login/user',
+        name: 'login-user',
+        builder: (context, state) => const LoginScreen(role: AuthRole.user),
+      ),
+      GoRoute(
+        path: '/login/restaurant',
+        name: 'login-restaurant',
+        builder: (context, state) =>
+            const LoginScreen(role: AuthRole.restaurant),
+      ),
+      GoRoute(
+        path: '/login/admin',
+        name: 'login-admin',
+        builder: (context, state) => const LoginScreen(role: AuthRole.admin),
+      ),
+      GoRoute(
+        path: '/register/user',
+        name: 'register-user',
+        builder: (context, state) => const RegisterScreen(role: AuthRole.user),
+      ),
+      GoRoute(
+        path: '/register/restaurant',
+        name: 'register-restaurant',
+        builder: (context, state) =>
+            const RegisterScreen(role: AuthRole.restaurant),
       ),
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/admin',
+        name: 'admin-dashboard',
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        name: 'admin-users',
+        builder: (context, state) => const AdminUsersScreen(),
+      ),
+      GoRoute(
+        path: '/admin/activity',
+        name: 'admin-activity',
+        builder: (context, state) => const AdminActivityScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => HomeShell(child: child),
@@ -47,12 +90,22 @@ final class AppRouter {
             builder: (context, state) => const RestaurantsScreen(),
           ),
           GoRoute(
+            path: '/home/nearby',
+            name: 'nearby',
+            builder: (context, state) => const NearbyRestaurantsScreen(),
+          ),
+          GoRoute(
             path: '/home/restaurants/:id',
             name: 'restaurant-detail',
             builder: (context, state) {
               final id = state.pathParameters['id']!;
               return RestaurantDetailScreen(restaurantId: id);
             },
+          ),
+          GoRoute(
+            path: '/home/restaurant/settings',
+            name: 'restaurant-settings',
+            builder: (context, state) => const RestaurantSettingsScreen(),
           ),
           GoRoute(
             path: '/home/menu/:restaurantId',
@@ -77,17 +130,23 @@ final class AppRouter {
     ],
     redirect: (context, state) {
       final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
-      final isOnAuthScreen = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      final isOnAuthScreen = state.matchedLocation.startsWith('/welcome') ||
+          state.matchedLocation.startsWith('/login') ||
+          state.matchedLocation.startsWith('/register');
       final isOnOnboarding = state.matchedLocation == '/onboarding';
 
       // If not logged in and not on auth screen, redirect to login
       if (!isLoggedIn && !isOnAuthScreen && !isOnOnboarding) {
-        return '/login';
+        return '/welcome';
       }
 
-      // If logged in and on auth screen, redirect to home
+      // If logged in and on auth screen, redirect by role
       if (isLoggedIn && isOnAuthScreen) {
+        final role = Supabase
+            .instance.client.auth.currentUser?.userMetadata?['role'] as String?;
+        if (role == 'admin') {
+          return '/admin';
+        }
         return '/home';
       }
 
@@ -95,4 +154,3 @@ final class AppRouter {
     },
   );
 }
-

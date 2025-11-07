@@ -1,11 +1,10 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/menu_category.dart';
 import 'package:cleardish/data/models/menu_item.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Menu API
-/// 
+///
 /// Handles menu data operations with Supabase.
 class MenuApi {
   MenuApi(this._client);
@@ -85,4 +84,3 @@ class MenuApi {
     }
   }
 }
-

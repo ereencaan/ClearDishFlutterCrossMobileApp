@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cleardish/data/models/allergen.dart';
 
 /// Onboarding controller state
 class OnboardingState {
@@ -42,4 +41,3 @@ final onboardingControllerProvider =
     StateNotifierProvider<OnboardingController, OnboardingState>((ref) {
   return OnboardingController();
 });
-

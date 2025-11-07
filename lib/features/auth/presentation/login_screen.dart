@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/features/auth/controllers/auth_controller.dart';
+import 'package:cleardish/features/auth/models/auth_role.dart';
+import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/app_input.dart';
 
 /// Login screen
-/// 
+///
 /// Allows users to sign in with email and password.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.role = AuthRole.user});
+
+  final AuthRole role;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -34,7 +38,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     final result = await ref.read(authControllerProvider.notifier).login(
           email: _emailController.text.trim(),
-          password: _passwordController.text,
+          password: _passwordController.text.trim(),
+          expectedRole: widget.role,
         );
 
     if (!mounted) return;
@@ -49,12 +54,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    // Navigate to onboarding or home
+    // Navigate by role
     final user = ref.read(authControllerProvider).user;
     if (user != null) {
-      // Check if profile exists and has allergens
-      // For now, always go to onboarding first
-      context.go('/onboarding');
+      if (widget.role == AuthRole.admin) {
+        context.go('/admin');
+      } else {
+        context.go('/onboarding');
+      }
     }
   }
 
@@ -76,8 +83,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Welcome Back',
+                  Text(
+                    widget.role == AuthRole.admin
+                        ? 'Welcome Back, Admin'
+                        : widget.role == AuthRole.restaurant
+                            ? 'Welcome Back, Restaurant'
+                            : 'Welcome Back',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -127,12 +138,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _handleLogin,
                   ),
                   const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () => context.go('/register'),
-                    child: const Text(
-                      "Don't have an account? Sign Up",
+                  if (widget.role != AuthRole.admin)
+                    TextButton(
+                      onPressed: () => context.go(
+                        widget.role == AuthRole.restaurant
+                            ? '/register/restaurant'
+                            : '/register/user',
+                      ),
+                      child: const Text(
+                        "Don't have an account? Sign Up",
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -142,4 +158,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

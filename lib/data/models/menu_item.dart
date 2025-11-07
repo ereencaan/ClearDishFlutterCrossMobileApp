@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Menu item model
-/// 
+///
 /// Represents a menu item with allergens information.
 class MenuItem extends Equatable {
   const MenuItem({
@@ -12,6 +12,7 @@ class MenuItem extends Equatable {
     this.description,
     this.price,
     this.allergens = const [],
+    this.diets = const [],
   });
 
   final String id;
@@ -21,6 +22,7 @@ class MenuItem extends Equatable {
   final String? description;
   final double? price;
   final List<String> allergens;
+  final List<String> diets;
 
   /// Creates MenuItem from Supabase map
   factory MenuItem.fromMap(Map<String, dynamic> map) {
@@ -36,6 +38,9 @@ class MenuItem extends Equatable {
       allergens: List<String>.from(
         (map['allergens'] as List<dynamic>?) ?? [],
       ),
+      diets: List<String>.from(
+        (map['diets'] as List<dynamic>?) ?? [],
+      ),
     );
   }
 
@@ -49,11 +54,12 @@ class MenuItem extends Equatable {
       'description': description,
       'price': price,
       'allergens': allergens,
+      'diets': diets,
     };
   }
 
   /// Checks if this item contains any of the given allergens
-  /// 
+  ///
   /// Returns true if there's an intersection between this item's allergens
   /// and the provided allergens list.
   bool containsAllergens(List<String> userAllergens) {
@@ -61,6 +67,16 @@ class MenuItem extends Equatable {
       return false;
     }
     return allergens.any((allergen) => userAllergens.contains(allergen));
+  }
+
+  /// Returns true if this item satisfies ALL of the user's dietary preferences
+  bool satisfiesDiets(List<String> userDiets) {
+    if (userDiets.isEmpty) return true;
+    if (diets.isEmpty) return false;
+    for (final d in userDiets) {
+      if (!diets.contains(d)) return false;
+    }
+    return true;
   }
 
   @override
@@ -72,6 +88,6 @@ class MenuItem extends Equatable {
         description,
         price,
         allergens,
+        diets,
       ];
 }
-

@@ -40,3 +40,4 @@ class MenuCategory extends Equatable {
   List<Object?> get props => [id, restaurantId, name, sortOrder];
 }
 
+

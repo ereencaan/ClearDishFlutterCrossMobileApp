@@ -3,8 +3,9 @@ import 'package:cleardish/data/models/menu_item.dart';
 
 void main() {
   group('Allergen Filter Tests', () {
-    test('MenuItem.containsAllergens returns true when intersection exists', () {
-      final item = MenuItem(
+    test('MenuItem.containsAllergens returns true when intersection exists',
+        () {
+      const item = MenuItem(
         id: '1',
         restaurantId: 'rest1',
         name: 'Pasta with Gluten',
@@ -17,7 +18,7 @@ void main() {
     });
 
     test('MenuItem.containsAllergens returns false when no intersection', () {
-      final item = MenuItem(
+      const item = MenuItem(
         id: '1',
         restaurantId: 'rest1',
         name: 'Safe Item',
@@ -29,8 +30,9 @@ void main() {
       expect(item.containsAllergens([]), isFalse);
     });
 
-    test('MenuItem.containsAllergens returns false when item has no allergens', () {
-      final item = MenuItem(
+    test('MenuItem.containsAllergens returns false when item has no allergens',
+        () {
+      const item = MenuItem(
         id: '1',
         restaurantId: 'rest1',
         name: 'Allergen-Free Item',
@@ -42,4 +44,3 @@ void main() {
     });
   });
 }
-

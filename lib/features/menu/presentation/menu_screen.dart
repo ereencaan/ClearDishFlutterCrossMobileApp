@@ -7,7 +7,7 @@ import 'package:cleardish/features/menu/widgets/menu_item_tile.dart';
 import 'package:cleardish/data/models/menu_item.dart';
 
 /// Menu screen
-/// 
+///
 /// Displays menu items with safe-only filter option.
 class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({
@@ -42,9 +42,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     final profileState = ref.watch(profileControllerProvider);
 
     final userAllergens = profileState.profile?.allergens ?? [];
+    final userDiets = profileState.profile?.diets ?? [];
     final filteredItems = ref
         .read(menuControllerProvider(widget.restaurantId).notifier)
-        .getFilteredItems(userAllergens);
+        .getFilteredItems(userAllergens, userDiets);
 
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +75,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               padding: const EdgeInsets.all(12),
               color: Colors.orange[100],
               child: Text(
-                '${menuState.hiddenCount} item(s) hidden due to allergens',
+                '${menuState.hiddenCount} item(s) hidden (allergen/diet)',
                 style: const TextStyle(fontSize: 14),
                 textAlign: TextAlign.center,
               ),
@@ -131,4 +132,3 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     );
   }
 }
-

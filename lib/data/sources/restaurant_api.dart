@@ -1,10 +1,9 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Restaurant API
-/// 
+///
 /// Handles restaurant data operations with Supabase.
 class RestaurantApi {
   RestaurantApi(this._client);
@@ -37,7 +36,7 @@ class RestaurantApi {
           ).single();
 
       final restaurant = Restaurant.fromMap(
-        response as Map<String, dynamic>,
+        response,
       );
 
       return Success(restaurant);
@@ -45,5 +44,30 @@ class RestaurantApi {
       return Failure('Failed to fetch restaurant: ${e.toString()}');
     }
   }
-}
 
+  /// Gets nearby restaurants using RPC
+  Future<Result<List<Restaurant>>> getNearbyRestaurants({
+    required double lat,
+    required double lng,
+    double radiusKm = 5,
+  }) async {
+    try {
+      final response = await _client.supabaseClient.client.rpc(
+        'restaurants_nearby',
+        params: {
+          'p_lat': lat,
+          'p_lng': lng,
+          'p_radius_km': radiusKm,
+        },
+      );
+
+      final restaurants = (response as List)
+          .map((json) => Restaurant.fromMap(json as Map<String, dynamic>))
+          .toList();
+
+      return Success(restaurants);
+    } catch (e) {
+      return Failure('Failed to fetch nearby restaurants: ${e.toString()}');
+    }
+  }
+}
