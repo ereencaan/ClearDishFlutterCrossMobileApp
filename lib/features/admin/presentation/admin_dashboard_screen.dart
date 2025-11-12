@@ -80,11 +80,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                 _QuickLinks(),
                 const SizedBox(height: 24),
                 // Lists
-                _SectionHeader(title: 'Restaurants'),
+                const _SectionHeader(title: 'Restaurants'),
                 const SizedBox(height: 8),
                 _RestaurantsList(restaurantsAsync: restaurantsAsync),
                 const SizedBox(height: 24),
-                _SectionHeader(title: 'Users'),
+                const _SectionHeader(title: 'Users'),
                 const SizedBox(height: 8),
                 _UsersList(usersAsync: usersAsync),
               ],

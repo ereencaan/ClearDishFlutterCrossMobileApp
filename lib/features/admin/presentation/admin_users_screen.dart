@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/models/user_profile.dart';
 
-final adminUsersProvider = FutureProvider.autoDispose<List<UserProfile>>((ref) async {
+final adminUsersProvider =
+    FutureProvider.autoDispose<List<UserProfile>>((ref) async {
   final rows = await SupabaseClient.instance.supabaseClient.client
       .from('user_profiles')
       .select()
@@ -35,10 +36,13 @@ class AdminUsersScreen extends ConsumerWidget {
               return ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: Text(u.fullName ?? u.userId),
-                subtitle: Text([
-                  if ((u.allergens).isNotEmpty) 'Allergens: ${u.allergens.join(', ')}',
-                  if ((u.diets).isNotEmpty) 'Diets: ${u.diets.join(', ')}',
-                ].join('  •  ')),
+                subtitle: Text(
+                  [
+                    if ((u.allergens).isNotEmpty)
+                      'Allergens: ${u.allergens.join(', ')}',
+                    if ((u.diets).isNotEmpty) 'Diets: ${u.diets.join(', ')}',
+                  ].join('  •  '),
+                ),
               );
             },
           );

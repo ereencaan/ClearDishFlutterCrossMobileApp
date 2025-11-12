@@ -81,20 +81,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final uid = SupabaseClient.instance.auth.currentUser?.id;
       if (uid != null) {
         final profileRepo = ref.read(profileRepoProvider);
-        await profileRepo.saveProfile(UserProfile(
-          userId: uid,
-          fullName: _fullNameController.text.trim().isEmpty
-              ? null
-              : _fullNameController.text.trim(),
-          address: _addressController.text.trim().isEmpty
-              ? null
-              : _addressController.text.trim(),
-          avatarUrl: _avatarUrlController.text.trim().isEmpty
-              ? null
-              : _avatarUrlController.text.trim(),
-          allergens: _selectedAllergens,
-          diets: _selectedDiets,
-        ));
+        await profileRepo.saveProfile(
+          UserProfile(
+            userId: uid,
+            fullName: _fullNameController.text.trim().isEmpty
+                ? null
+                : _fullNameController.text.trim(),
+            address: _addressController.text.trim().isEmpty
+                ? null
+                : _addressController.text.trim(),
+            avatarUrl: _avatarUrlController.text.trim().isEmpty
+                ? null
+                : _avatarUrlController.text.trim(),
+            allergens: _selectedAllergens,
+            diets: _selectedDiets,
+          ),
+        );
       }
       context.go('/home');
       return;
@@ -303,7 +305,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     ? '/login/restaurant'
                                     : '/login/user',
                               ),
-                              child: const Text('Already have an account? Sign In'),
+                              child: const Text(
+                                  'Already have an account? Sign In'),
                             ),
                           ],
                         ),

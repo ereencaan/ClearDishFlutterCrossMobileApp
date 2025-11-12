@@ -54,15 +54,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    // Navigate by role
+    // Navigate to a unified soft loading screen; it will forward by role.
     final user = ref.read(authControllerProvider).user;
-    if (user != null) {
-      if (widget.role == AuthRole.admin) {
-        context.go('/admin');
-      } else {
-        context.go('/onboarding');
-      }
-    }
+    if (user != null) context.go('/loading');
   }
 
   @override
@@ -89,7 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         : widget.role == AuthRole.restaurant
                             ? 'Welcome Back, Restaurant'
                             : 'Welcome Back',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),

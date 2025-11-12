@@ -39,9 +39,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             builder: (context, _) {
               final t = _controller.value;
               final c1 = Color.lerp(
-                  const Color(0xFFE9F8EF), const Color(0xFFDCFCE7), t)!;
+                const Color(0xFFE9F8EF),
+                const Color(0xFFDCFCE7),
+                t,
+              )!;
               final c2 = Color.lerp(
-                  const Color(0xFFCFF3DA), const Color(0xFFBBF7D0), 1 - t)!;
+                const Color(0xFFCFF3DA),
+                const Color(0xFFBBF7D0),
+                1 - t,
+              )!;
               return Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -81,8 +87,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           radius: 28,
                           backgroundColor:
                               colorScheme.primary.withOpacity(0.15),
-                          child: Icon(Icons.local_dining,
-                              color: colorScheme.primary, size: 28),
+                          child: Icon(
+                            Icons.local_dining,
+                            color: colorScheme.primary,
+                            size: 28,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -110,56 +119,59 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       style: TextStyle(fontSize: 16, color: Colors.black87),
                     ),
                     const SizedBox(height: 32),
-                    LayoutBuilder(builder: (context, constraints) {
-                      final isWide = constraints.maxWidth > 720;
-                      final double cardWidth =
-                          isWide ? 320 : (constraints.maxWidth - 48);
-                      final children = [
-                        _AnimatedRoleCard(
-                          delayMs: 0,
-                          child: _RoleCard(
-                            title: 'I am a User',
-                            subtitle: 'Discover restaurants and order safely',
-                            icon: Icons.person,
-                            primaryActionText: 'Sign In',
-                            secondaryActionText: 'Create Account',
-                            onPrimary: () => context.go('/login/user'),
-                            onSecondary: () => context.go('/register/user'),
-                            width: cardWidth,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 720;
+                        final double cardWidth =
+                            isWide ? 320 : (constraints.maxWidth - 48);
+                        final children = [
+                          _AnimatedRoleCard(
+                            delayMs: 0,
+                            child: _RoleCard(
+                              title: 'I am a User',
+                              subtitle: 'Discover restaurants and order safely',
+                              icon: Icons.person,
+                              primaryActionText: 'Sign In',
+                              secondaryActionText: 'Create Account',
+                              onPrimary: () => context.go('/login/user'),
+                              onSecondary: () => context.go('/register/user'),
+                              width: cardWidth,
+                            ),
                           ),
-                        ),
-                        _AnimatedRoleCard(
-                          delayMs: 120,
-                          child: _RoleCard(
-                            title: 'I am a Restaurant Owner',
-                            subtitle: 'Manage your menu, badges and promotions',
-                            icon: Icons.storefront,
-                            primaryActionText: 'Sign In',
-                            secondaryActionText: 'Create Account',
-                            onPrimary: () => context.go('/login/restaurant'),
-                            onSecondary: () =>
-                                context.go('/register/restaurant'),
-                            width: cardWidth,
+                          _AnimatedRoleCard(
+                            delayMs: 120,
+                            child: _RoleCard(
+                              title: 'I am a Restaurant Owner',
+                              subtitle:
+                                  'Manage your menu, badges and promotions',
+                              icon: Icons.storefront,
+                              primaryActionText: 'Sign In',
+                              secondaryActionText: 'Create Account',
+                              onPrimary: () => context.go('/login/restaurant'),
+                              onSecondary: () =>
+                                  context.go('/register/restaurant'),
+                              width: cardWidth,
+                            ),
                           ),
-                        ),
-                      ];
-                      return isWide
-                          ? Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                children[0],
-                                const SizedBox(width: 24),
-                                children[1],
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                children[0],
-                                const SizedBox(height: 24),
-                                children[1],
-                              ],
-                            );
-                    }),
+                        ];
+                        return isWide
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  children[0],
+                                  const SizedBox(width: 24),
+                                  children[1],
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  children[0],
+                                  const SizedBox(height: 24),
+                                  children[1],
+                                ],
+                              );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -183,9 +195,10 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 40,
-                  spreadRadius: 10),
+                color: color.withOpacity(0.3),
+                blurRadius: 40,
+                spreadRadius: 10,
+              ),
             ],
           ),
         );
@@ -234,14 +247,19 @@ class _RoleCard extends StatelessWidget {
               child: Icon(icon, color: colorScheme.primary, size: 24),
             ),
             const SizedBox(height: 16),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(subtitle,
-                style: const TextStyle(fontSize: 13, color: Colors.white70)),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 13, color: Colors.white70),
+            ),
             const SizedBox(height: 20),
             FilledButton(
               onPressed: onPrimary,
@@ -279,7 +297,9 @@ class _AnimatedRoleCardState extends State<_AnimatedRoleCard>
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 700));
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
     _opacity = CurvedAnimation(parent: _c, curve: Curves.easeOut);
     _offset = Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(
       CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),

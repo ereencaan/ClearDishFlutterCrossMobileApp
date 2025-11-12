@@ -3,7 +3,6 @@ import 'package:cleardish/features/auth/presentation/login_screen.dart';
 import 'package:cleardish/features/auth/presentation/register_screen.dart';
 import 'package:cleardish/features/auth/models/auth_role.dart';
 import 'package:cleardish/features/auth/presentation/welcome_screen.dart';
-import 'package:cleardish/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:cleardish/features/home/presentation/home_shell.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurants_screen.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_detail_screen.dart';
@@ -16,6 +15,7 @@ import 'package:cleardish/features/restaurants/presentation/restaurant_settings_
 import 'package:cleardish/features/admin/presentation/admin_dashboard_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_users_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart';
+import 'package:cleardish/features/common/presentation/loading_screen.dart';
 
 /// Application router configuration
 ///
@@ -57,9 +57,9 @@ final class AppRouter {
             const RegisterScreen(role: AuthRole.restaurant),
       ),
       GoRoute(
-        path: '/onboarding',
-        name: 'onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        path: '/loading',
+        name: 'loading',
+        builder: (context, state) => const LoadingScreen(),
       ),
       GoRoute(
         path: '/admin',
@@ -133,10 +133,9 @@ final class AppRouter {
       final isOnAuthScreen = state.matchedLocation.startsWith('/welcome') ||
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
-      final isOnOnboarding = state.matchedLocation == '/onboarding';
 
       // If not logged in and not on auth screen, redirect to login
-      if (!isLoggedIn && !isOnAuthScreen && !isOnOnboarding) {
+      if (!isLoggedIn && !isOnAuthScreen) {
         return '/welcome';
       }
 

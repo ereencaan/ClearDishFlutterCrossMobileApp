@@ -40,16 +40,16 @@ class AdminActivityScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _SectionTitle('Logins (last 30 days)'),
+          const _SectionTitle('Logins (last 30 days)'),
           _SeriesCard(seriesAsync: loginSeries),
           const SizedBox(height: 16),
-          _SectionTitle('Searches (last 30 days)'),
+          const _SectionTitle('Searches (last 30 days)'),
           _SeriesCard(seriesAsync: searchSeries, color: Colors.orange),
           const SizedBox(height: 16),
-          _SectionTitle('Top Restaurants'),
+          const _SectionTitle('Top Restaurants'),
           _TopListCard(entriesAsync: topRestaurants),
           const SizedBox(height: 16),
-          _SectionTitle('Top Users'),
+          const _SectionTitle('Top Users'),
           _TopListCard(entriesAsync: topUsers),
         ],
       ),
@@ -82,7 +82,8 @@ class _SeriesCard extends StatelessWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Failed: $e')),
             data: (res) {
-              if (res.isFailure) return Center(child: Text(res.errorOrNull ?? 'Error'));
+              if (res.isFailure)
+                return Center(child: Text(res.errorOrNull ?? 'Error'));
               final pts = res.dataOrNull ?? const <TimePoint>[];
               if (pts.isEmpty) return const Center(child: Text('No data'));
               final spots = <FlSpot>[];
@@ -92,11 +93,16 @@ class _SeriesCard extends StatelessWidget {
               return LineChart(
                 LineChartData(
                   gridData: const FlGridData(show: false),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 32)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  titlesData: const FlTitlesData(
+                    bottomTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(
+                        sideTitles:
+                            SideTitles(showTitles: true, reservedSize: 32)),
+                    rightTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
                   lineBarsData: [
                     LineChartBarData(
@@ -123,7 +129,8 @@ class _TopListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: entriesAsync.when(
-        loading: () => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
+        loading: () => const SizedBox(
+            height: 120, child: Center(child: CircularProgressIndicator())),
         error: (e, _) => Padding(
           padding: const EdgeInsets.all(16),
           child: Text('Failed: $e'),

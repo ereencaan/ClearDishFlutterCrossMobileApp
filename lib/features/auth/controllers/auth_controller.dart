@@ -71,8 +71,9 @@ class AuthController extends StateNotifier<AuthState> {
       final role = state.user?.userMetadata?['role'] as String?;
       if (role != expectedRole.name) {
         await _authRepo.signOut();
-        state = state.copyWith(user: null, error: 'Wrong portal for this account');
-        return Failure('Wrong portal for this account');
+        state =
+            state.copyWith(user: null, error: 'Wrong portal for this account');
+        return const Failure('Wrong portal for this account');
       }
     }
 

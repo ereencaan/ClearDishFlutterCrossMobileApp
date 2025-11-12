@@ -22,10 +22,12 @@ class AnalyticsApi {
       final rows = await _client.supabaseClient.client
           .rpc('analytics_logins_by_day', params: {'p_days': days});
       final list = (rows as List)
-          .map((e) => TimePoint(
-                (e['day'] as String?) ?? e['day'].toString(),
-                (e['count'] as num).toInt(),
-              ))
+          .map(
+            (e) => TimePoint(
+              (e['day'] as String?) ?? e['day'].toString(),
+              (e['count'] as num).toInt(),
+            ),
+          )
           .toList();
       return Success(list);
     } catch (e) {
@@ -38,10 +40,12 @@ class AnalyticsApi {
       final rows = await _client.supabaseClient.client
           .rpc('analytics_searches_by_day', params: {'p_days': days});
       final list = (rows as List)
-          .map((e) => TimePoint(
-                (e['day'] as String?) ?? e['day'].toString(),
-                (e['count'] as num).toInt(),
-              ))
+          .map(
+            (e) => TimePoint(
+              (e['day'] as String?) ?? e['day'].toString(),
+              (e['count'] as num).toInt(),
+            ),
+          )
           .toList();
       return Success(list);
     } catch (e) {
@@ -56,10 +60,12 @@ class AnalyticsApi {
           .select()
           .limit(limit);
       final list = (rows as List)
-          .map((e) => TopEntry(
-                (e['name'] as String?) ?? 'Unknown',
-                (e['count'] as num).toInt(),
-              ))
+          .map(
+            (e) => TopEntry(
+              (e['name'] as String?) ?? 'Unknown',
+              (e['count'] as num).toInt(),
+            ),
+          )
           .toList();
       return Success(list);
     } catch (e) {
@@ -74,10 +80,12 @@ class AnalyticsApi {
           .select()
           .limit(limit);
       final list = (rows as List)
-          .map((e) => TopEntry(
-                (e['email'] as String?) ?? 'User',
-                (e['count'] as num).toInt(),
-              ))
+          .map(
+            (e) => TopEntry(
+              (e['email'] as String?) ?? 'User',
+              (e['count'] as num).toInt(),
+            ),
+          )
           .toList();
       return Success(list);
     } catch (e) {
