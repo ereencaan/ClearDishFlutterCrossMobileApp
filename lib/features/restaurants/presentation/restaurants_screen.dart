@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:cleardish/data/sources/restaurant_api.dart';
+import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/models/restaurant.dart';
+import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
+import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/controllers/restaurants_controller.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurant_card.dart';
 
@@ -16,11 +22,45 @@ class RestaurantsScreen extends ConsumerStatefulWidget {
 
 class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
   final _searchController = TextEditingController();
+  late Future<_NearbyPayload> _nearbyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _nearbyFuture = _loadNearby();
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<_NearbyPayload> _loadNearby() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        throw Exception('Location permission denied');
+      }
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final api = RestaurantApi(SupabaseClient.instance);
+      final result = await api.getNearbyRestaurants(
+        lat: pos.latitude,
+        lng: pos.longitude,
+        radiusKm: 5,
+      );
+      if (result.isFailure) {
+        throw Exception(result.errorOrNull);
+      }
+      return _NearbyPayload(position: pos, restaurants: result.dataOrNull!);
+    } catch (e) {
+      return _NearbyPayload(error: e.toString());
+    }
   }
 
   @override
@@ -40,6 +80,118 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
       ),
       body: Column(
         children: [
+          // Map + nearby section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: FutureBuilder<_NearbyPayload>(
+              future: _nearbyFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 240,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final data = snapshot.data;
+                if (data == null || data.error != null) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.location_off, color: Colors.orange),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Enable location to see nearby restaurants on the map.',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    RestaurantsMap(
+                      userLat: data.position!.latitude,
+                      userLng: data.position!.longitude,
+                      restaurants: data.restaurants,
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Nearby restaurants',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Horizontal list of a few nearby items with distance
+                    SizedBox(
+                      height: 120,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount:
+                            data.restaurants.length.clamp(0, 10), // show top 10
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (context, index) {
+                          final r = data.restaurants[index];
+                          final distanceKm = r.distanceMeters != null
+                              ? (r.distanceMeters! / 1000).toStringAsFixed(2)
+                              : null;
+                          return Container(
+                            width: 220,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    Theme.of(context).dividerColor.withOpacity(.4),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  r.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  r.address ?? 'No address',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                const Spacer(),
+                                if (distanceKm != null)
+                                  Text(
+                                    '$distanceKm km',
+                                    style:
+                                        Theme.of(context).textTheme.labelLarge,
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -115,4 +267,15 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
       ),
     );
   }
+}
+
+class _NearbyPayload {
+  _NearbyPayload({
+    this.position,
+    this.restaurants = const [],
+    this.error,
+  });
+  final Position? position;
+  final List<Restaurant> restaurants;
+  final String? error;
 }

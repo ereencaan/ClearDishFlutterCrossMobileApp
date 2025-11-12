@@ -47,6 +47,13 @@ class RestaurantCard extends StatelessWidget {
                   ],
                 ),
               ],
+              if (restaurant.distanceMeters != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '${(restaurant.distanceMeters! / 1000).toStringAsFixed(2)} km away',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ],
             ],
           ),
         ),

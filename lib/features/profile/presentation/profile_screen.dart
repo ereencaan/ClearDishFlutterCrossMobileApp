@@ -30,7 +30,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final role = user?.userMetadata?['role'] as String?;
     _isAdmin = role == 'admin';
     if (!_isAdmin) {
-      _loadProfile();
+      // Defer provider mutations until after first frame to avoid
+      // "modify provider while building" errors on web.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadProfile();
+      });
     }
   }
 
@@ -110,7 +114,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profileState = ref.watch(profileControllerProvider);
     final user = Supabase.instance.client.auth.currentUser;
 
     // Admin profile: simple overview and actions, no onboarding fields
@@ -145,6 +148,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     }
 
+    final profileState = ref.watch(profileControllerProvider);
     if (profileState.isLoading && profileState.profile == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
