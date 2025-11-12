@@ -131,58 +131,21 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // Horizontal list of a few nearby items with distance
+                    // Horizontal scroll with drag-friendly SingleChildScrollView
                     SizedBox(
-                      height: 120,
+                      height: 130,
                       child: ListView.separated(
+                        primary: false,
                         scrollDirection: Axis.horizontal,
-                        itemCount:
-                            data.restaurants.length.clamp(0, 10), // show top 10
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: data.restaurants.length.clamp(0, 10),
                         separatorBuilder: (_, __) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final r = data.restaurants[index];
-                          final distanceKm = r.distanceMeters != null
-                              ? (r.distanceMeters! / 1000).toStringAsFixed(2)
-                              : null;
-                          return Container(
-                            width: 220,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color:
-                                    Theme.of(context).dividerColor.withOpacity(.4),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  r.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  r.address ?? 'No address',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                const Spacer(),
-                                if (distanceKm != null)
-                                  Text(
-                                    '$distanceKm km',
-                                    style:
-                                        Theme.of(context).textTheme.labelLarge,
-                                  ),
-                              ],
-                            ),
+                          return _NearbyCard(
+                            restaurant: r,
+                            onTap: () => context.go('/home/restaurants/${r.id}'),
                           );
                         },
                       ),
@@ -278,4 +241,58 @@ class _NearbyPayload {
   final Position? position;
   final List<Restaurant> restaurants;
   final String? error;
+}
+
+class _NearbyCard extends StatelessWidget {
+  const _NearbyCard({required this.restaurant, required this.onTap});
+  final Restaurant restaurant;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final distanceKm = restaurant.distanceMeters != null
+        ? (restaurant.distanceMeters! / 1000).toStringAsFixed(2)
+        : null;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 240,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withOpacity(.4),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              restaurant.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              restaurant.address ?? 'No address',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const Spacer(),
+            if (distanceKm != null)
+              Text(
+                '$distanceKm km',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

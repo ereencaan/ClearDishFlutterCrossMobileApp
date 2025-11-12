@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cleardish/data/models/menu_item.dart';
 
 /// Menu item tile widget
-/// 
+///
 /// Displays a menu item with its details.
 class MenuItemTile extends StatelessWidget {
   const MenuItemTile({
@@ -34,7 +34,7 @@ class MenuItemTile extends StatelessWidget {
                 ),
                 if (item.price != null)
                   Text(
-                    '\$${item.price!.toStringAsFixed(2)}',
+                    '£${item.price!.toStringAsFixed(2)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.primary,
@@ -72,5 +72,3 @@ class MenuItemTile extends StatelessWidget {
     );
   }
 }
-
-

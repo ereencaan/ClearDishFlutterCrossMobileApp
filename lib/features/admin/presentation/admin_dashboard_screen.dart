@@ -161,9 +161,9 @@ class _QuickLinks extends StatelessWidget {
       runSpacing: 12,
       children: [
         FilledButton.icon(
-          onPressed: () => context.go('/home/restaurants'),
+          onPressed: () => context.go('/admin/restaurants'),
           icon: const Icon(Icons.store_mall_directory),
-          label: const Text('All Restaurants'),
+          label: const Text('Manage Restaurants'),
         ),
         FilledButton.tonalIcon(
           onPressed: () => context.go('/home/nearby'),

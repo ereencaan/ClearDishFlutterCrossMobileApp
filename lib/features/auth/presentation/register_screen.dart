@@ -12,6 +12,8 @@ import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/repositories/profile_repo.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 /// Register screen
 ///
@@ -33,7 +35,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // User profile fields
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
-  final _avatarUrlController = TextEditingController();
+  XFile? _pickedAvatar;
   List<String> _selectedAllergens = [];
   List<String> _selectedDiets = [];
   // Restaurant fields
@@ -47,7 +49,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _confirmPasswordController.dispose();
     _fullNameController.dispose();
     _addressController.dispose();
-    _avatarUrlController.dispose();
     _restaurantNameController.dispose();
     _restaurantAddressController.dispose();
     super.dispose();
@@ -80,6 +81,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (widget.role == AuthRole.user) {
       final uid = SupabaseClient.instance.auth.currentUser?.id;
       if (uid != null) {
+        String? avatarUrl;
+        if (_pickedAvatar != null) {
+          try {
+            final bytes = await _pickedAvatar!.readAsBytes();
+            final filePath =
+                'avatars/$uid-${DateTime.now().millisecondsSinceEpoch}.jpg';
+            await SupabaseClient.instance.supabaseClient.client.storage
+                .from('avatars')
+                .uploadBinary(filePath, bytes,
+                    fileOptions: const supabase.FileOptions(upsert: true));
+            avatarUrl = SupabaseClient.instance.supabaseClient.client.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+          } catch (_) {
+            avatarUrl = null;
+          }
+        }
         final profileRepo = ref.read(profileRepoProvider);
         await profileRepo.saveProfile(
           UserProfile(
@@ -90,9 +108,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             address: _addressController.text.trim().isEmpty
                 ? null
                 : _addressController.text.trim(),
-            avatarUrl: _avatarUrlController.text.trim().isEmpty
-                ? null
-                : _avatarUrlController.text.trim(),
+            avatarUrl: avatarUrl,
             allergens: _selectedAllergens,
             diets: _selectedDiets,
           ),
@@ -242,9 +258,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 controller: _addressController,
                               ),
                               const SizedBox(height: 12),
-                              AppInput(
-                                label: 'Photo URL (optional)',
-                                controller: _avatarUrlController,
+                              _AvatarPicker(
+                                picked: _pickedAvatar,
+                                onPick: (x) =>
+                                    setState(() => _pickedAvatar = x),
                               ),
                               const SizedBox(height: 16),
                               ChipsFilter(
@@ -319,6 +336,65 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AvatarPicker extends StatelessWidget {
+  const _AvatarPicker({required this.picked, required this.onPick});
+  final XFile? picked;
+  final ValueChanged<XFile?> onPick;
+
+  Future<void> _choose(BuildContext context, ImageSource source) async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+    onPick(file);
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  }
+
+  void _showSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take a photo'),
+              onTap: () => _choose(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () => _choose(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          child: picked == null
+              ? const Icon(Icons.person)
+              : const Icon(Icons.check),
+        ),
+        const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: () => _showSheet(context),
+          icon: const Icon(Icons.upload),
+          label: const Text('Upload Photo'),
+        ),
+      ],
     );
   }
 }

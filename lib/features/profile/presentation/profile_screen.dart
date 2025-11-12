@@ -108,7 +108,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       );
     } else {
-      context.go('/login');
+      context.go('/welcome');
     }
   }
 

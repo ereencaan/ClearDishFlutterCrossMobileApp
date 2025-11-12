@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:cleardish/data/repositories/restaurant_repo.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Restaurant detail screen
-/// 
+///
 /// Shows restaurant details and navigation to menu.
 class RestaurantDetailScreen extends ConsumerStatefulWidget {
   const RestaurantDetailScreen({
@@ -110,6 +112,14 @@ class _RestaurantDetailScreenState
                   fontWeight: FontWeight.bold,
                 ),
           ),
+          const SizedBox(height: 12),
+          if (_restaurant!.lat != null && _restaurant!.lng != null)
+            RestaurantsMap(
+              userLat: _restaurant!.lat!, // center near restaurant if available
+              userLng: _restaurant!.lng!,
+              restaurants: [_restaurant!],
+              height: 220,
+            ),
           if (_restaurant!.address != null) ...[
             const SizedBox(height: 16),
             Row(
@@ -124,11 +134,23 @@ class _RestaurantDetailScreenState
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: () async {
+                final lat = _restaurant!.lat;
+                final lng = _restaurant!.lng;
+                if (lat != null && lng != null) {
+                  final url = Uri.parse(
+                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              icon: const Icon(Icons.directions),
+              label: const Text('Get directions'),
+            ),
           ],
         ],
       ),
     );
   }
 }
-
-

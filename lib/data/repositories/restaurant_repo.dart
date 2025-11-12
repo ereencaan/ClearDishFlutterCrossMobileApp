@@ -20,6 +20,26 @@ class RestaurantRepo {
   Future<Result<Restaurant>> getRestaurant(String id) async {
     return _api.getRestaurant(id);
   }
+
+  /// Create
+  Future<Result<Restaurant>> createRestaurant(Restaurant r) {
+    return _api.createRestaurant(r);
+  }
+
+  /// Update
+  Future<Result<Restaurant>> updateRestaurant(Restaurant r) {
+    return _api.updateRestaurant(r);
+  }
+
+  /// Delete
+  Future<Result<void>> deleteRestaurant(String id) {
+    return _api.deleteRestaurant(id);
+  }
+
+  /// Terminate partnership
+  Future<Result<void>> terminateRestaurant(String id) {
+    return _api.terminateRestaurant(id);
+  }
 }
 
 

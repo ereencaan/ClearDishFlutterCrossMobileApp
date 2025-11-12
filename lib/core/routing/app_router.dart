@@ -16,6 +16,9 @@ import 'package:cleardish/features/admin/presentation/admin_dashboard_screen.dar
 import 'package:cleardish/features/admin/presentation/admin_users_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart';
 import 'package:cleardish/features/common/presentation/loading_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_restaurants_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_restaurant_form_screen.dart';
+import 'package:cleardish/data/models/restaurant.dart';
 
 /// Application router configuration
 ///
@@ -75,6 +78,36 @@ final class AppRouter {
         path: '/admin/activity',
         name: 'admin-activity',
         builder: (context, state) => const AdminActivityScreen(),
+      ),
+      GoRoute(
+        path: '/admin/restaurants',
+        name: 'admin-restaurants',
+        builder: (context, state) => const AdminRestaurantsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/restaurants/new',
+        name: 'admin-restaurant-new',
+        builder: (context, state) => const AdminRestaurantFormScreen(),
+      ),
+      GoRoute(
+        path: '/admin/restaurants/:id/edit',
+        name: 'admin-restaurant-edit',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          // Pass minimal model; the edit screen expects the id and will submit with it
+          return AdminRestaurantFormScreen(
+            restaurant: Restaurant(
+              id: id,
+              name: '',
+              visible: true,
+              address: null,
+              lat: null,
+              lng: null,
+              createdAt: null,
+              distanceMeters: null,
+            ),
+          );
+        },
       ),
       ShellRoute(
         builder: (context, state, child) => HomeShell(child: child),
