@@ -18,6 +18,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Enable Flutter web
+        run: flutter config --enable-web
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -40,3 +43,5 @@ jobs:
           publish_dir: build/web
           publish_branch: gh-pages
           force_orphan: true
+          user_name: github-actions[bot]
+          user_email: 41898282+github-actions[bot]@users.noreply.github.com
