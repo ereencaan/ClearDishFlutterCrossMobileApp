@@ -1,5 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase
-    hide SupabaseClient;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase hide SupabaseClient;
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/sources/supabase_client.dart' as app;
 
@@ -14,8 +13,7 @@ class AuthApi {
   supabase.User? get currentUser => _client.auth.currentUser;
 
   /// Stream of auth state changes
-  Stream<supabase.AuthState> get authStateChanges =>
-      _client.auth.onAuthStateChange;
+  Stream<supabase.AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
   /// Signs in with email and password
   Future<Result<supabase.Session>> signIn({
@@ -42,13 +40,19 @@ class AuthApi {
     Map<String, dynamic>? data,
   }) async {
     try {
+      // Normalize email input early
+      final normalizedEmail = email.trim().toLowerCase();
       final response = await _client.auth.signUp(
-        email: email,
+        email: normalizedEmail,
         password: password,
         data: data,
       );
+      // Many Supabase projects require email confirmation. In that case
+      // session will be null even though the request is successful.
       if (response.session == null) {
-        return const Failure('Registration successful but session is null');
+        return const Failure(
+          'Check your inbox to confirm your email, then sign in.',
+        );
       }
       return Success(response.session!);
     } on supabase.AuthException catch (e) {

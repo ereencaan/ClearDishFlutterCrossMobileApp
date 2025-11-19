@@ -60,7 +60,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
 
     final result = await ref.read(authControllerProvider.notifier).register(
-          email: _emailController.text.trim(),
+          email: _emailController.text.trim().toLowerCase(),
           password: _passwordController.text,
           role: widget.role,
         );
@@ -90,7 +90,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             await SupabaseClient.instance.supabaseClient.client.storage
                 .from('avatars')
                 .uploadBinary(filePath, bytes,
-                    fileOptions: const supabase.FileOptions(upsert: true));
+                    fileOptions: const supabase.FileOptions(upsert: true),);
             avatarUrl = SupabaseClient.instance.supabaseClient.client.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
@@ -208,7 +208,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your email';
                                 }
-                                if (!value.contains('@')) {
+                                final v = value.trim().toLowerCase();
+                                final emailRe = RegExp(
+                                    r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+                                if (!emailRe.hasMatch(v)) {
                                   return 'Please enter a valid email';
                                 }
                                 return null;
@@ -323,7 +326,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     : '/login/user',
                               ),
                               child: const Text(
-                                  'Already have an account? Sign In'),
+                                  'Already have an account? Sign In',),
                             ),
                           ],
                         ),
@@ -348,7 +351,7 @@ class _AvatarPicker extends StatelessWidget {
   Future<void> _choose(BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
-        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85,);
     onPick(file);
     if (Navigator.of(context).canPop()) Navigator.of(context).pop();
   }
