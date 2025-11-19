@@ -1,4 +1,5 @@
-import 'package:supabase_flutter/supabase_flutter.dart' as supabase hide SupabaseClient;
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase
+    hide SupabaseClient;
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/sources/supabase_client.dart' as app;
 
@@ -13,7 +14,8 @@ class AuthApi {
   supabase.User? get currentUser => _client.auth.currentUser;
 
   /// Stream of auth state changes
-  Stream<supabase.AuthState> get authStateChanges => _client.auth.onAuthStateChange;
+  Stream<supabase.AuthState> get authStateChanges =>
+      _client.auth.onAuthStateChange;
 
   /// Signs in with email and password
   Future<Result<supabase.Session>> signIn({

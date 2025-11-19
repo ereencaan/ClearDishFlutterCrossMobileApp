@@ -124,7 +124,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         name: _restaurantNameController.text.trim(),
         address: _restaurantAddressController.text.trim(),
       );
-      context.go('/home/restaurant/settings');
+      context.go('/home/restaurant/setup');
       return;
     }
   }

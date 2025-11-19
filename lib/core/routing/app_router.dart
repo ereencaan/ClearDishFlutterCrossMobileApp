@@ -19,6 +19,7 @@ import 'package:cleardish/features/common/presentation/loading_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurants_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurant_form_screen.dart';
 import 'package:cleardish/data/models/restaurant.dart';
+import 'package:cleardish/features/restaurants/presentation/restaurant_setup_screen.dart';
 
 /// Application router configuration
 ///
@@ -139,6 +140,11 @@ final class AppRouter {
             path: '/home/restaurant/settings',
             name: 'restaurant-settings',
             builder: (context, state) => const RestaurantSettingsScreen(),
+          ),
+          GoRoute(
+            path: '/home/restaurant/setup',
+            name: 'restaurant-setup',
+            builder: (context, state) => const RestaurantSetupScreen(),
           ),
           GoRoute(
             path: '/home/menu/:restaurantId',

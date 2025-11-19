@@ -83,4 +83,121 @@ class MenuApi {
       return Failure('Failed to fetch menu: ${e.toString()}');
     }
   }
+
+  // ---------- CRUD: Categories ----------
+  Future<Result<MenuCategory>> addCategory({
+    required String restaurantId,
+    required String name,
+    int sortOrder = 0,
+  }) async {
+    try {
+      final inserted = await _client.supabaseClient.client
+          .from('menu_categories')
+          .insert({
+            'restaurant_id': restaurantId,
+            'name': name,
+            'sort_order': sortOrder,
+          })
+          .select()
+          .single();
+      return Success(MenuCategory.fromMap(inserted as Map<String, dynamic>));
+    } catch (e) {
+      return Failure('Failed to add category: ${e.toString()}');
+    }
+  }
+
+  Future<Result<void>> updateCategory({
+    required String id,
+    required String name,
+    int? sortOrder,
+  }) async {
+    try {
+      final data = {
+        'name': name,
+        if (sortOrder != null) 'sort_order': sortOrder,
+      };
+      await _client.supabaseClient.client
+          .from('menu_categories')
+          .update(data)
+          .eq('id', id);
+      return const Success(null);
+    } catch (e) {
+      return Failure('Failed to update category: ${e.toString()}');
+    }
+  }
+
+  Future<Result<void>> deleteCategory(String id) async {
+    try {
+      await _client.supabaseClient.client
+          .from('menu_categories')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      return Failure('Failed to delete category: ${e.toString()}');
+    }
+    return const Success(null);
+  }
+
+  // ---------- CRUD: Items ----------
+  Future<Result<MenuItem>> addItem({
+    required String restaurantId,
+    String? categoryId,
+    required String name,
+    String? description,
+    double? price,
+    List<String>? allergens,
+    List<String>? diets,
+  }) async {
+    try {
+      final inserted = await _client.supabaseClient.client
+          .from('menu_items')
+          .insert({
+            'restaurant_id': restaurantId,
+            'category_id': categoryId,
+            'name': name,
+            'description': description,
+            'price': price,
+            'allergens': allergens ?? <String>[],
+            'diets': diets ?? <String>[],
+          })
+          .select()
+          .single();
+      return Success(MenuItem.fromMap(inserted as Map<String, dynamic>));
+    } catch (e) {
+      return Failure('Failed to add item: ${e.toString()}');
+    }
+  }
+
+  Future<Result<void>> updateItem({
+    required String id,
+    String? categoryId,
+    String? name,
+    String? description,
+    double? price,
+    List<String>? allergens,
+    List<String>? diets,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (categoryId != null) data['category_id'] = categoryId;
+      if (name != null) data['name'] = name;
+      if (description != null) data['description'] = description;
+      if (price != null) data['price'] = price;
+      if (allergens != null) data['allergens'] = allergens;
+      if (diets != null) data['diets'] = diets;
+      await _client.supabaseClient.client.from('menu_items').update(data).eq('id', id);
+      return const Success(null);
+    } catch (e) {
+      return Failure('Failed to update item: ${e.toString()}');
+    }
+  }
+
+  Future<Result<void>> deleteItem(String id) async {
+    try {
+      await _client.supabaseClient.client.from('menu_items').delete().eq('id', id);
+      return const Success(null);
+    } catch (e) {
+      return Failure('Failed to delete item: ${e.toString()}');
+    }
+  }
 }

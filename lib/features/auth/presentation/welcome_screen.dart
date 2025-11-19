@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cleardish/widgets/brand_logo.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -80,31 +81,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor:
-                              colorScheme.primary.withOpacity(0.15),
-                          child: Icon(
-                            Icons.local_dining,
-                            color: colorScheme.primary,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'ClearDish',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.w800,
-                            color: colorScheme.primary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
+                    const Align(
+                      alignment: Alignment.center,
+                      child: BrandLogo(
+                        size: 96,
+                        showText: false,
+                      ),
                     ),
+                    const SizedBox(height: 16),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
