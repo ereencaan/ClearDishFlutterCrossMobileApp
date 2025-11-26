@@ -107,5 +107,3 @@ class AdminRestaurantsScreen extends ConsumerWidget {
     );
   }
 }
-
-

@@ -51,7 +51,8 @@ class RestaurantsState {
 
 /// Restaurants controller
 class RestaurantsController extends StateNotifier<RestaurantsState> {
-  RestaurantsController(this._restaurantRepo) : super(const RestaurantsState()) {
+  RestaurantsController(this._restaurantRepo)
+      : super(const RestaurantsState()) {
     loadRestaurants();
   }
 
@@ -79,5 +80,3 @@ final restaurantsControllerProvider =
     StateNotifierProvider<RestaurantsController, RestaurantsState>((ref) {
   return RestaurantsController(ref.watch(restaurantRepoProvider));
 });
-
-

@@ -41,6 +41,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Restaurant fields
   final _restaurantNameController = TextEditingController();
   final _restaurantAddressController = TextEditingController();
+  final _restaurantPhoneController = TextEditingController();
 
   @override
   void dispose() {
@@ -51,6 +52,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _addressController.dispose();
     _restaurantNameController.dispose();
     _restaurantAddressController.dispose();
+    _restaurantPhoneController.dispose();
     super.dispose();
   }
 
@@ -89,8 +91,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 'avatars/$uid-${DateTime.now().millisecondsSinceEpoch}.jpg';
             await SupabaseClient.instance.supabaseClient.client.storage
                 .from('avatars')
-                .uploadBinary(filePath, bytes,
-                    fileOptions: const supabase.FileOptions(upsert: true),);
+                .uploadBinary(
+                  filePath,
+                  bytes,
+                  fileOptions: const supabase.FileOptions(upsert: true),
+                );
             avatarUrl = SupabaseClient.instance.supabaseClient.client.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
@@ -123,6 +128,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       await api.createRestaurantWithOwner(
         name: _restaurantNameController.text.trim(),
         address: _restaurantAddressController.text.trim(),
+        phone: _restaurantPhoneController.text.trim().isEmpty
+            ? null
+            : _restaurantPhoneController.text.trim(),
       );
       context.go('/home/restaurant/setup');
       return;
@@ -310,6 +318,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   return null;
                                 },
                               ),
+                              const SizedBox(height: 12),
+                              AppInput(
+                                label: 'Restaurant Phone (optional)',
+                                controller: _restaurantPhoneController,
+                                keyboardType: TextInputType.phone,
+                              ),
                             ],
 
                             const SizedBox(height: 20),
@@ -326,7 +340,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     : '/login/user',
                               ),
                               child: const Text(
-                                  'Already have an account? Sign In',),
+                                'Already have an account? Sign In',
+                              ),
                             ),
                           ],
                         ),
@@ -351,7 +366,11 @@ class _AvatarPicker extends StatelessWidget {
   Future<void> _choose(BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
     final file = await picker.pickImage(
-        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85,);
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     onPick(file);
     if (Navigator.of(context).canPop()) Navigator.of(context).pop();
   }

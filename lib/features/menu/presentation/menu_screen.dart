@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 import 'package:cleardish/features/menu/controllers/menu_controller.dart';
 import 'package:cleardish/features/profile/controllers/profile_controller.dart';
 import 'package:cleardish/features/menu/widgets/menu_item_tile.dart';
 import 'package:cleardish/data/models/menu_item.dart';
+import 'package:cleardish/data/sources/restaurant_visit_api.dart';
+import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 /// Menu screen
 ///
@@ -27,9 +32,18 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     super.initState();
     // Load profile to get user allergens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = Supabase.instance.client.auth.currentUser;
+      final user = supa.Supabase.instance.client.auth.currentUser;
       if (user != null) {
         ref.read(profileControllerProvider.notifier).loadProfile(user.id);
+        final role = user.userMetadata?['role'] as String?;
+        if (role != 'restaurant') {
+          unawaited(
+            RestaurantVisitApi(SupabaseClient.instance).recordVisit(
+              restaurantId: widget.restaurantId,
+              userId: user.id,
+            ),
+          );
+        }
       }
     });
   }
@@ -50,6 +64,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Menu'),
+        leading: const AppBackButton(
+          fallbackRoute: '/home/restaurants',
+        ),
         actions: [
           Switch(
             value: menuState.safeOnly,

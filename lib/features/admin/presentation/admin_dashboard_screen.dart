@@ -181,6 +181,11 @@ class _QuickLinks extends StatelessWidget {
           label: const Text('All Users'),
         ),
         FilledButton.tonalIcon(
+          onPressed: () => context.go('/admin/approvals'),
+          icon: const Icon(Icons.verified),
+          label: const Text('Pending Approvals'),
+        ),
+        FilledButton.tonalIcon(
           onPressed: () => context.go('/home/profile'),
           icon: const Icon(Icons.person),
           label: const Text('Profile'),

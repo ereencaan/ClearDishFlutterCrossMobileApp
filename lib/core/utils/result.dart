@@ -1,5 +1,5 @@
 /// Result type for handling success and error states
-/// 
+///
 /// Similar to Rust's Result type, this helps avoid throwing exceptions
 /// for expected error cases.
 sealed class Result<T> {
@@ -50,5 +50,3 @@ extension ResultExtension<T> on Result<T> {
         Failure<T>(:final message) => Failure(mapper(message)),
       };
 }
-
-

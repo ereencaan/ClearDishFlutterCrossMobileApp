@@ -44,5 +44,3 @@ class AppInput extends StatelessWidget {
     );
   }
 }
-
-

@@ -26,9 +26,8 @@ class _LoadingScreenState extends State<LoadingScreen>
     await Future<void>.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
 
-    final role =
-        Supabase.instance.client.auth.currentUser?.userMetadata?['role']
-            as String?;
+    final role = Supabase
+        .instance.client.auth.currentUser?.userMetadata?['role'] as String?;
     if (role == 'admin') {
       context.go('/admin');
     } else {

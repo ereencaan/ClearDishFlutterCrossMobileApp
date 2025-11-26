@@ -32,9 +32,7 @@ class MenuItem extends Equatable {
       name: map['name'] as String,
       categoryId: map['category_id'] as String?,
       description: map['description'] as String?,
-      price: map['price'] != null
-          ? (map['price'] as num).toDouble()
-          : null,
+      price: map['price'] != null ? (map['price'] as num).toDouble() : null,
       allergens: List<String>.from(
         (map['allergens'] as List<dynamic>?) ?? [],
       ),

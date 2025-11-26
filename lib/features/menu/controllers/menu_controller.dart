@@ -117,7 +117,8 @@ class MenuController extends StateNotifier<MenuState> {
   }
 
   /// Gets filtered menu items based on safe-only toggle
-  List<MenuItem> getFilteredItems(List<String> userAllergens, List<String> userDiets) {
+  List<MenuItem> getFilteredItems(
+      List<String> userAllergens, List<String> userDiets) {
     if (!state.safeOnly) {
       return state.menuItems;
     }
@@ -131,8 +132,9 @@ class MenuController extends StateNotifier<MenuState> {
 }
 
 /// Menu controller provider factory
-final menuControllerProvider = StateNotifierProvider.family<
-    MenuController, MenuState, String>((ref, restaurantId) {
+final menuControllerProvider =
+    StateNotifierProvider.family<MenuController, MenuState, String>(
+        (ref, restaurantId) {
   return MenuController(
     ref.watch(menuRepoProvider),
     ref.watch(profileRepoProvider),

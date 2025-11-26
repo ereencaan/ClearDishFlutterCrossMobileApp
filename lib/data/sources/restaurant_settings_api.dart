@@ -1,4 +1,5 @@
 import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/data/models/promotion.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
@@ -34,10 +35,11 @@ class RestaurantSettingsApi {
     }
   }
 
-  /// Upserts address and coordinates
+  /// Upserts address, contact and coordinates
   Future<Result<Restaurant>> saveAddress({
     required String restaurantId,
     required String address,
+    String? phone,
     double? lat,
     double? lng,
   }) async {
@@ -45,6 +47,7 @@ class RestaurantSettingsApi {
       final data = {
         'id': restaurantId,
         'address': address,
+        if (phone != null) 'phone': phone,
         'lat': lat,
         'lng': lng,
       };
@@ -98,7 +101,8 @@ class RestaurantSettingsApi {
         'description': description,
         'percent_off': percentOff,
         'starts_at': (startsAt ?? now).toIso8601String(),
-        'ends_at': (endsAt ?? now.add(const Duration(days: 7))).toIso8601String(),
+        'ends_at':
+            (endsAt ?? now.add(const Duration(days: 7))).toIso8601String(),
         'user_id': userId,
         'active': true,
       };
@@ -113,6 +117,7 @@ class RestaurantSettingsApi {
   Future<Result<String>> createRestaurantWithOwner({
     required String name,
     required String address,
+    String? phone,
   }) async {
     try {
       final uid = _client.auth.currentUser?.id;
@@ -120,7 +125,12 @@ class RestaurantSettingsApi {
 
       final inserted = await _client.supabaseClient.client
           .from('restaurants')
-          .insert({'name': name, 'address': address, 'visible': true})
+          .insert({
+            'name': name,
+            'address': address,
+            'phone': phone,
+            'visible': true,
+          })
           .select()
           .single();
 
@@ -134,6 +144,34 @@ class RestaurantSettingsApi {
       return Success(restaurantId);
     } catch (e) {
       return Failure('Failed to create restaurant: ${e.toString()}');
+    }
+  }
+
+  Future<Result<List<Promotion>>> getPromotions(String restaurantId) async {
+    try {
+      final rows = await _client.supabaseClient.client
+          .from('promotions')
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .order('starts_at', ascending: false);
+      final data = (rows as List)
+          .map((row) => Promotion.fromMap(row as Map<String, dynamic>))
+          .toList();
+      return Success(data);
+    } catch (e) {
+      return Failure('Failed to load promotions: $e');
+    }
+  }
+
+  Future<Result<void>> deletePromotion(String promotionId) async {
+    try {
+      await _client.supabaseClient.client
+          .from('promotions')
+          .delete()
+          .eq('id', promotionId);
+      return const Success(null);
+    } catch (e) {
+      return Failure('Failed to delete promotion: $e');
     }
   }
 }

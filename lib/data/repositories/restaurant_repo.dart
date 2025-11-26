@@ -4,7 +4,7 @@ import 'package:cleardish/data/sources/restaurant_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Restaurant repository
-/// 
+///
 /// Provides restaurant data operations.
 class RestaurantRepo {
   RestaurantRepo() : _api = RestaurantApi(SupabaseClient.instance);
@@ -41,5 +41,3 @@ class RestaurantRepo {
     return _api.terminateRestaurant(id);
   }
 }
-
-

@@ -12,10 +12,14 @@ class RestaurantApi {
   /// Gets all visible restaurants
   Future<Result<List<Restaurant>>> getRestaurants() async {
     try {
-      final response = await _client.supabaseClient.client.from('restaurants').select().eq(
+      final response = await _client.supabaseClient.client
+          .from('restaurants')
+          .select()
+          .eq(
             'visible',
             true,
-          ).order('name');
+          )
+          .order('name');
 
       final restaurants = (response as List)
           .map((json) => Restaurant.fromMap(json as Map<String, dynamic>))
@@ -30,10 +34,14 @@ class RestaurantApi {
   /// Gets a single restaurant by ID
   Future<Result<Restaurant>> getRestaurant(String id) async {
     try {
-      final response = await _client.supabaseClient.client.from('restaurants').select().eq(
+      final response = await _client.supabaseClient.client
+          .from('restaurants')
+          .select()
+          .eq(
             'id',
             id,
-          ).single();
+          )
+          .single();
 
       final restaurant = Restaurant.fromMap(
         response,
@@ -77,12 +85,15 @@ class RestaurantApi {
       final response = await _client.supabaseClient.client
           .from('restaurants')
           .insert({
-        'name': r.name,
-        'address': r.address,
-        'lat': r.lat,
-        'lng': r.lng,
-        'visible': r.visible,
-      }).select().single();
+            'name': r.name,
+            'address': r.address,
+            'phone': r.phone,
+            'lat': r.lat,
+            'lng': r.lng,
+            'visible': r.visible,
+          })
+          .select()
+          .single();
       return Success(Restaurant.fromMap(response));
     } catch (e) {
       return Failure('Failed to create restaurant: ${e.toString()}');
@@ -95,12 +106,16 @@ class RestaurantApi {
       final response = await _client.supabaseClient.client
           .from('restaurants')
           .update({
-        'name': r.name,
-        'address': r.address,
-        'lat': r.lat,
-        'lng': r.lng,
-        'visible': r.visible,
-      }).eq('id', r.id).select().single();
+            'name': r.name,
+            'address': r.address,
+            'phone': r.phone,
+            'lat': r.lat,
+            'lng': r.lng,
+            'visible': r.visible,
+          })
+          .eq('id', r.id)
+          .select()
+          .single();
       return Success(Restaurant.fromMap(response));
     } catch (e) {
       return Failure('Failed to update restaurant: ${e.toString()}');
@@ -110,7 +125,10 @@ class RestaurantApi {
   /// Hard delete
   Future<Result<void>> deleteRestaurant(String id) async {
     try {
-      await _client.supabaseClient.client.from('restaurants').delete().eq('id', id);
+      await _client.supabaseClient.client
+          .from('restaurants')
+          .delete()
+          .eq('id', id);
       return const Success(null);
     } catch (e) {
       return Failure('Failed to delete restaurant: ${e.toString()}');

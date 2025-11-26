@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Custom button widget with consistent styling
-/// 
+///
 /// Uses dark green color scheme as per design requirements.
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -57,5 +57,3 @@ class AppButton extends StatelessWidget {
     );
   }
 }
-
-

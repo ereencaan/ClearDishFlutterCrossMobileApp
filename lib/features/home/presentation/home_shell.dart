@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 /// Home shell with bottom navigation
-/// 
+///
 /// Provides navigation structure for the main app screens.
 class HomeShell extends StatelessWidget {
   const HomeShell({
@@ -66,5 +66,3 @@ class HomeShell extends StatelessWidget {
     return 0;
   }
 }
-
-

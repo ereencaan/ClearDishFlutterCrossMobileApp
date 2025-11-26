@@ -34,5 +34,3 @@ class ClearDishApp extends StatelessWidget {
     );
   }
 }
-
-

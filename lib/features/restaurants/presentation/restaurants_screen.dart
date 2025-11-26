@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:cleardish/data/sources/restaurant_api.dart';
-import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/models/restaurant.dart';
+import 'package:cleardish/data/sources/restaurant_api.dart';
+import 'package:cleardish/data/sources/restaurant_settings_api.dart';
+import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/controllers/restaurants_controller.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurant_card.dart';
+
+final _ownerRestaurantProvider =
+    FutureProvider.autoDispose<Result<Restaurant>>((ref) async {
+  final api = RestaurantSettingsApi(SupabaseClient.instance);
+  return api.getMyRestaurant();
+});
 
 /// Restaurants list screen
 ///
@@ -47,7 +54,8 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
         throw Exception('Location permission denied');
       }
       final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+      );
       final api = RestaurantApi(SupabaseClient.instance);
       final result = await api.getNearbyRestaurants(
         lat: pos.latitude,
@@ -66,6 +74,9 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(restaurantsControllerProvider);
+    final user = SupabaseClient.instance.auth.currentUser;
+    final role = user?.userMetadata?['role'] as String?;
+    final isOwner = role == 'restaurant';
 
     // Update search query when text changes
     _searchController.addListener(() {
@@ -73,6 +84,10 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
             _searchController.text,
           );
     });
+
+    if (isOwner) {
+      return const _OwnerRestaurantOverview();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -94,11 +109,11 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                 }
                 final data = snapshot.data;
                 if (data == null || data.error != null) {
-                  return Card(
+                  return const Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       child: Row(
-                        children: const [
+                        children: [
                           Icon(Icons.location_off, color: Colors.orange),
                           SizedBox(width: 12),
                           Expanded(
@@ -145,7 +160,8 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                           final r = data.restaurants[index];
                           return _NearbyCard(
                             restaurant: r,
-                            onTap: () => context.go('/home/restaurants/${r.id}'),
+                            onTap: () =>
+                                context.go('/home/restaurants/${r.id}'),
                           );
                         },
                       ),
@@ -194,7 +210,9 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                ref.read(restaurantsControllerProvider.notifier).loadRestaurants();
+                ref
+                    .read(restaurantsControllerProvider.notifier)
+                    .loadRestaurants();
               },
               child: const Text('Retry'),
             ),
@@ -292,6 +310,107 @@ class _NearbyCard extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OwnerRestaurantOverview extends ConsumerWidget {
+  const _OwnerRestaurantOverview();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resultAsync = ref.watch(_ownerRestaurantProvider);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Restaurant'),
+      ),
+      body: resultAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Failed: $e')),
+        data: (result) {
+          if (result.isFailure) {
+            return Center(child: Text(result.errorOrNull ?? 'Failed'));
+          }
+          final restaurant = result.dataOrNull!;
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          restaurant.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        if (restaurant.address != null)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.location_on, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(restaurant.address!)),
+                            ],
+                          ),
+                        if (restaurant.phone != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.phone, size: 18),
+                              const SizedBox(width: 8),
+                              Text(restaurant.phone!),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () =>
+                              context.go('/home/restaurant/settings'),
+                          icon: const Icon(Icons.edit_location),
+                          label: const Text('Edit contact / address'),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/home/restaurant/setup'),
+                          icon: const Icon(Icons.menu_book),
+                          label: const Text('Manage Menu'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (restaurant.lat != null && restaurant.lng != null)
+                  RestaurantsMap(
+                    userLat: restaurant.lat!,
+                    userLng: restaurant.lng!,
+                    restaurants: [restaurant],
+                    height: 240,
+                  )
+                else
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(
+                      child: Text('Add coordinates to preview map'),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

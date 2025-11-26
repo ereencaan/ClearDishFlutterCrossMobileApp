@@ -33,6 +33,25 @@ BEGIN
 END
 GO
 
+-- Profile Change Requests Table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'profile_change_requests')
+BEGIN
+    CREATE TABLE profile_change_requests (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        user_id UNIQUEIDENTIFIER NOT NULL,
+        type NVARCHAR(50) NOT NULL, -- 'allergens' | 'diets'
+        requested_values NVARCHAR(MAX) DEFAULT '[]', -- JSON format
+        status NVARCHAR(20) NOT NULL DEFAULT 'pending',
+        requested_at DATETIME DEFAULT GETDATE(),
+        resolved_at DATETIME NULL,
+        resolved_by UNIQUEIDENTIFIER NULL,
+        admin_note NVARCHAR(500),
+        user_name_snapshot NVARCHAR(255),
+        user_email_snapshot NVARCHAR(255)
+    );
+END
+GO
+
 -- Restaurants Table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'restaurants')
 BEGIN
@@ -40,6 +59,7 @@ BEGIN
         id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
         name NVARCHAR(255) NOT NULL,
         address NVARCHAR(500),
+        phone NVARCHAR(50),
         visible BIT DEFAULT 1,
         created_at DATETIME DEFAULT GETDATE()
     );
@@ -70,8 +90,65 @@ BEGIN
         description NVARCHAR(1000),
         price DECIMAL(10,2),
         allergens NVARCHAR(MAX) DEFAULT '[]', -- JSON format
+        diets NVARCHAR(MAX) DEFAULT '[]',     -- JSON format
         FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
         FOREIGN KEY (category_id) REFERENCES menu_categories(id) ON DELETE SET NULL
+    );
+END
+GO
+
+-- Restaurant Admins Table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'restaurant_admins')
+BEGIN
+    CREATE TABLE restaurant_admins (
+        restaurant_id UNIQUEIDENTIFIER NOT NULL,
+        user_id UNIQUEIDENTIFIER NOT NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+        PRIMARY KEY (restaurant_id, user_id)
+    );
+END
+GO
+
+-- Restaurant Badges Table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'restaurant_badges')
+BEGIN
+    CREATE TABLE restaurant_badges (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        restaurant_id UNIQUEIDENTIFIER NOT NULL,
+        type NVARCHAR(20) NOT NULL,
+        period_start DATETIME NOT NULL,
+        period_end DATETIME NOT NULL,
+        created_at DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- Promotions Table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'promotions')
+BEGIN
+    CREATE TABLE promotions (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        restaurant_id UNIQUEIDENTIFIER NOT NULL,
+        title NVARCHAR(255) NOT NULL,
+        description NVARCHAR(MAX),
+        percent_off DECIMAL(5,2) NOT NULL,
+        starts_at DATETIME NOT NULL DEFAULT GETDATE(),
+        ends_at DATETIME NOT NULL,
+        user_id UNIQUEIDENTIFIER NULL,
+        active BIT DEFAULT 1,
+        created_at DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- Restaurant Visits Table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'restaurant_visits')
+BEGIN
+    CREATE TABLE restaurant_visits (
+        id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+        restaurant_id UNIQUEIDENTIFIER NOT NULL,
+        user_id UNIQUEIDENTIFIER NOT NULL,
+        visited_at DATETIME DEFAULT GETDATE()
     );
 END
 GO
@@ -81,6 +158,14 @@ CREATE NONCLUSTERED INDEX IX_restaurants_visible ON restaurants(visible);
 CREATE NONCLUSTERED INDEX IX_menu_categories_restaurant ON menu_categories(restaurant_id);
 CREATE NONCLUSTERED INDEX IX_menu_items_restaurant ON menu_items(restaurant_id);
 CREATE NONCLUSTERED INDEX IX_menu_items_category ON menu_items(category_id);
+CREATE NONCLUSTERED INDEX IX_profile_change_requests_user ON profile_change_requests(user_id);
+CREATE NONCLUSTERED INDEX IX_profile_change_requests_status ON profile_change_requests(status);
+CREATE NONCLUSTERED INDEX IX_restaurant_admins_user ON restaurant_admins(user_id);
+CREATE NONCLUSTERED INDEX IX_restaurant_badges_restaurant ON restaurant_badges(restaurant_id);
+CREATE NONCLUSTERED INDEX IX_promotions_restaurant ON promotions(restaurant_id);
+CREATE NONCLUSTERED INDEX IX_promotions_user ON promotions(user_id);
+CREATE NONCLUSTERED INDEX IX_restaurant_visits_restaurant ON restaurant_visits(restaurant_id);
+CREATE NONCLUSTERED INDEX IX_restaurant_visits_user ON restaurant_visits(user_id);
 GO
 
 -- 4. SEED DATA - ÖRNEK VERİLER

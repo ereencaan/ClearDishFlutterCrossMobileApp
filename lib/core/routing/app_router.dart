@@ -13,6 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cleardish/features/restaurants/presentation/nearby_restaurants_screen.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_settings_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_dashboard_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_profile_requests_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_users_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart';
 import 'package:cleardish/features/common/presentation/loading_screen.dart';
@@ -76,6 +77,11 @@ final class AppRouter {
         builder: (context, state) => const AdminUsersScreen(),
       ),
       GoRoute(
+        path: '/admin/approvals',
+        name: 'admin-approvals',
+        builder: (context, state) => const AdminProfileRequestsScreen(),
+      ),
+      GoRoute(
         path: '/admin/activity',
         name: 'admin-activity',
         builder: (context, state) => const AdminActivityScreen(),
@@ -102,6 +108,7 @@ final class AppRouter {
               name: '',
               visible: true,
               address: null,
+              phone: null,
               lat: null,
               lng: null,
               createdAt: null,

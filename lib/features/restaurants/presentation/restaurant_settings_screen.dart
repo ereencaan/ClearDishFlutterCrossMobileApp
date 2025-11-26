@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final _settingsProvider =
     StateNotifierProvider<_SettingsController, _SettingsState>((ref) {
@@ -15,6 +16,7 @@ class _SettingsState {
     this.error,
     this.restaurantId,
     this.address,
+    this.phone,
     this.lat,
     this.lng,
   });
@@ -22,6 +24,7 @@ class _SettingsState {
   final String? error;
   final String? restaurantId;
   final String? address;
+  final String? phone;
   final double? lat;
   final double? lng;
 
@@ -30,6 +33,7 @@ class _SettingsState {
     String? error,
     String? restaurantId,
     String? address,
+    String? phone,
     double? lat,
     double? lng,
   }) {
@@ -38,6 +42,7 @@ class _SettingsState {
       error: error,
       restaurantId: restaurantId ?? this.restaurantId,
       address: address ?? this.address,
+      phone: phone ?? this.phone,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
     );
@@ -59,6 +64,7 @@ class _SettingsController extends StateNotifier<_SettingsState> {
         isLoading: false,
         restaurantId: r.id,
         address: r.address,
+        phone: r.phone,
         lat: r.lat,
         lng: r.lng,
       );
@@ -68,12 +74,18 @@ class _SettingsController extends StateNotifier<_SettingsState> {
     }
   }
 
-  Future<void> saveAddress(String address, double? lat, double? lng) async {
+  Future<void> saveAddress({
+    required String address,
+    String? phone,
+    double? lat,
+    double? lng,
+  }) async {
     if (state.restaurantId == null) return;
     state = state.copyWith(isLoading: true, error: null);
     final result = await _api.saveAddress(
       restaurantId: state.restaurantId!,
       address: address,
+      phone: phone,
       lat: lat,
       lng: lng,
     );
@@ -82,6 +94,7 @@ class _SettingsController extends StateNotifier<_SettingsState> {
       state = state.copyWith(
         isLoading: false,
         address: r.address,
+        phone: r.phone,
         lat: r.lat,
         lng: r.lng,
       );
@@ -145,6 +158,7 @@ class RestaurantSettingsScreen extends ConsumerStatefulWidget {
 class _RestaurantSettingsScreenState
     extends ConsumerState<RestaurantSettingsScreen> {
   final _addressCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
   final _promoTitleCtrl = TextEditingController();
@@ -154,6 +168,7 @@ class _RestaurantSettingsScreenState
   @override
   void dispose() {
     _addressCtrl.dispose();
+    _phoneCtrl.dispose();
     _latCtrl.dispose();
     _lngCtrl.dispose();
     _promoTitleCtrl.dispose();
@@ -174,13 +189,20 @@ class _RestaurantSettingsScreenState
     // Prefill once
     if (_addressCtrl.text.isEmpty && state.address != null)
       _addressCtrl.text = state.address!;
+    if (_phoneCtrl.text.isEmpty && state.phone != null)
+      _phoneCtrl.text = state.phone!;
     if (_latCtrl.text.isEmpty && state.lat != null)
       _latCtrl.text = state.lat!.toStringAsFixed(6);
     if (_lngCtrl.text.isEmpty && state.lng != null)
       _lngCtrl.text = state.lng!.toStringAsFixed(6);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Restaurant Settings')),
+      appBar: AppBar(
+        title: const Text('Restaurant Settings'),
+        leading: const AppBackButton(
+          fallbackRoute: '/home/restaurants',
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -192,6 +214,12 @@ class _RestaurantSettingsScreenState
             TextField(
                 controller: _addressCtrl,
                 decoration: const InputDecoration(labelText: 'Address')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phoneCtrl,
+              decoration: const InputDecoration(labelText: 'Phone (optional)'),
+              keyboardType: TextInputType.phone,
+            ),
             Row(
               children: [
                 Expanded(
@@ -213,7 +241,13 @@ class _RestaurantSettingsScreenState
                       final lat = double.tryParse(_latCtrl.text.trim());
                       final lng = double.tryParse(_lngCtrl.text.trim());
                       await controller.saveAddress(
-                          _addressCtrl.text.trim(), lat, lng);
+                        address: _addressCtrl.text.trim(),
+                        phone: _phoneCtrl.text.trim().isEmpty
+                            ? null
+                            : _phoneCtrl.text.trim(),
+                        lat: lat,
+                        lng: lng,
+                      );
                       if (!mounted) return;
                       ScaffoldMessenger.of(context)
                           .showSnackBar(const SnackBar(content: Text('Saved')));

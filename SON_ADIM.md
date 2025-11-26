@@ -32,12 +32,63 @@ create table public.user_profiles (
   updated_at timestamptz default now()
 );
 
+create table public.profile_change_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  type text not null check (type in ('allergens','diets')),
+  requested_values text[] not null default '{}',
+  status text not null default 'pending' check (status in ('pending','approved','rejected')),
+  requested_at timestamptz default now(),
+  resolved_at timestamptz,
+  resolved_by uuid references auth.users(id),
+  admin_note text,
+  user_name_snapshot text,
+  user_email_snapshot text
+);
+
 create table public.restaurants (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   address text,
+  phone text,
   visible boolean default true,
   created_at timestamptz default now()
+);
+
+create table public.restaurant_admins (
+  restaurant_id uuid references public.restaurants(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (restaurant_id, user_id)
+);
+
+create table public.restaurant_badges (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  type text not null check (type in ('weekly','monthly')),
+  period_start timestamptz not null,
+  period_end timestamptz not null,
+  created_at timestamptz default now()
+);
+
+create table public.promotions (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  title text not null,
+  description text,
+  percent_off numeric(5,2) not null,
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz not null,
+  user_id uuid references auth.users(id),
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+create table public.restaurant_visits (
+  id uuid primary key default gen_random_uuid(),
+  restaurant_id uuid not null references public.restaurants(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  visited_at timestamptz default now()
 );
 
 create table public.menu_categories (
@@ -63,22 +114,117 @@ create policy "own_profile"
   for select using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+alter table public.profile_change_requests enable row level security;
+create policy "own_change_request_read"
+  on public.profile_change_requests
+  for select using (auth.uid() = user_id);
+create policy "own_change_request_insert"
+  on public.profile_change_requests
+  for insert with check (auth.uid() = user_id);
+create policy "admin_manage_change_requests"
+  on public.profile_change_requests
+  for all using ((auth.jwt()->'user_metadata'->>'role') = 'admin')
+  with check ((auth.jwt()->'user_metadata'->>'role') = 'admin');
+
 alter table public.restaurants enable row level security;
 create policy "public_restaurants_read"
   on public.restaurants for select using (visible = true);
 
+alter table public.restaurant_admins enable row level security;
+create policy "own_admin_mapping_read"
+  on public.restaurant_admins
+  for select using (auth.uid() = user_id);
+create policy "own_admin_mapping_insert"
+  on public.restaurant_admins
+  for insert with check (auth.uid() = user_id);
+
+alter table public.restaurant_badges enable row level security;
+create policy "restaurant_badges_manage"
+  on public.restaurant_badges
+  for all using (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  );
+
+alter table public.promotions enable row level security;
+create policy "promotions_manage"
+  on public.promotions
+  for all using (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  );
+
+alter table public.restaurant_visits enable row level security;
+create policy "restaurant_visits_insert"
+  on public.restaurant_visits
+  for insert with check (auth.uid() = user_id);
+create policy "restaurant_visits_owner_select"
+  on public.restaurant_visits
+  for select using (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  );
+
 alter table public.menu_categories enable row level security;
 create policy "public_menu_categories_read"
   on public.menu_categories for select using (true);
+create policy "menu_categories_manage"
+  on public.menu_categories
+  for all using (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  );
 
 alter table public.menu_items enable row level security;
 create policy "public_menu_items_read"
   on public.menu_items for select using (true);
+create policy "menu_items_manage"
+  on public.menu_items
+  for all using (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.restaurant_admins ra
+      where ra.restaurant_id = restaurant_id and ra.user_id = auth.uid()
+    )
+  );
 
 create index idx_restaurants_visible on public.restaurants(visible);
 create index idx_menu_categories_restaurant on public.menu_categories(restaurant_id);
 create index idx_menu_items_restaurant on public.menu_items(restaurant_id);
 create index idx_menu_items_category on public.menu_items(category_id);
+create index idx_profile_change_requests_user on public.profile_change_requests(user_id);
+create index idx_profile_change_requests_status on public.profile_change_requests(status);
 ```
 
 **Sonuç:** ✅ "Success" mesajını görmelisin!
@@ -134,6 +280,7 @@ Sol menü → **Table Editor** → Şunları görmelisin:
 - ✅ `restaurants` (3 kayıt)
 - ✅ `menu_categories` (8 kayıt)
 - ✅ `menu_items` (20 kayıt)
+- ✅ `profile_change_requests` (boş olabilir, yeni isteklerde dolacak)
 
 ## 🚀 Artık Çalıştırabilirsin!
 

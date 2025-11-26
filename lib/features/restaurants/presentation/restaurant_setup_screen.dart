@@ -6,6 +6,7 @@ import 'package:cleardish/data/sources/menu_api.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/menu_category.dart';
 import 'package:cleardish/data/models/menu_item.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final _setupProvider =
     StateNotifierProvider<_SetupController, _SetupState>((ref) {
@@ -63,7 +64,8 @@ class _SetupState {
 }
 
 class _SetupController extends StateNotifier<_SetupState> {
-  _SetupController(this._settingsApi, this._menuApi) : super(const _SetupState()) {
+  _SetupController(this._settingsApi, this._menuApi)
+      : super(const _SetupState()) {
     _load();
   }
   final RestaurantSettingsApi _settingsApi;
@@ -122,55 +124,138 @@ class _SetupController extends StateNotifier<_SetupState> {
     );
   }
 
-  Future<void> addCategory(String name) async {
-    if (state.restaurantId == null) return;
+  Future<String?> addCategory(String name) async {
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
     final res = await _menuApi.addCategory(
       restaurantId: state.restaurantId!,
       name: name,
     );
-    if (res is Failure) return;
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
     await refreshMenu();
+    return null;
   }
 
-  Future<void> addItem({
+  Future<String?> updateCategory({
+    required String categoryId,
+    required String name,
+    int? sortOrder,
+  }) async {
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
+    final res = await _menuApi.updateCategory(
+      id: categoryId,
+      name: name,
+      sortOrder: sortOrder,
+    );
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
+    await refreshMenu();
+    return null;
+  }
+
+  Future<String?> deleteCategory(String categoryId) async {
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
+    final res = await _menuApi.deleteCategory(categoryId);
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
+    await refreshMenu();
+    return null;
+  }
+
+  Future<String?> addItem({
     String? categoryId,
     required String name,
     double? price,
   }) async {
-    if (state.restaurantId == null) return;
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
     final res = await _menuApi.addItem(
       restaurantId: state.restaurantId!,
       categoryId: categoryId,
       name: name,
       price: price,
     );
-    if (res is Failure) return;
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
     await refreshMenu();
+    return null;
+  }
+
+  Future<String?> updateItem({
+    required String itemId,
+    String? categoryId,
+    required String name,
+    double? price,
+  }) async {
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
+    final res = await _menuApi.updateItem(
+      id: itemId,
+      categoryId: categoryId,
+      name: name,
+      price: price,
+    );
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
+    await refreshMenu();
+    return null;
+  }
+
+  Future<String?> deleteItem(String itemId) async {
+    if (state.restaurantId == null) {
+      return 'Missing restaurant context';
+    }
+    final res = await _menuApi.deleteItem(itemId);
+    if (res case Failure(:final message)) {
+      state = state.copyWith(error: message);
+      return message;
+    }
+    await refreshMenu();
+    return null;
   }
 }
 
 class RestaurantSetupScreen extends ConsumerStatefulWidget {
   const RestaurantSetupScreen({super.key});
   @override
-  ConsumerState<RestaurantSetupScreen> createState() => _RestaurantSetupScreenState();
+  ConsumerState<RestaurantSetupScreen> createState() =>
+      _RestaurantSetupScreenState();
 }
 
 class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
   final _addressCtrl = TextEditingController();
-  final _latCtrl = TextEditingController();
-  final _lngCtrl = TextEditingController();
-  final _catNameCtrl = TextEditingController();
+  final _categoryNameCtrl = TextEditingController();
   final _itemNameCtrl = TextEditingController();
   final _itemPriceCtrl = TextEditingController();
+  final _latCtrl = TextEditingController();
+  final _lngCtrl = TextEditingController();
 
   @override
   void dispose() {
     _addressCtrl.dispose();
-    _latCtrl.dispose();
-    _lngCtrl.dispose();
-    _catNameCtrl.dispose();
+    _categoryNameCtrl.dispose();
     _itemNameCtrl.dispose();
     _itemPriceCtrl.dispose();
+    _latCtrl.dispose();
+    _lngCtrl.dispose();
     super.dispose();
   }
 
@@ -192,7 +277,12 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Finish Restaurant Setup')),
+      appBar: AppBar(
+        title: const Text('Finish Restaurant Setup'),
+        leading: const AppBackButton(
+          fallbackRoute: '/home/restaurant/settings',
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -204,7 +294,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
             ),
             TextField(
               controller: _addressCtrl,
-              decoration: const InputDecoration(labelText: 'Restaurant Address'),
+              decoration:
+                  const InputDecoration(labelText: 'Restaurant Address'),
             ),
             Row(
               children: [
@@ -212,7 +303,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   child: TextField(
                     controller: _latCtrl,
                     decoration: const InputDecoration(labelText: 'Latitude'),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -220,7 +312,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   child: TextField(
                     controller: _lngCtrl,
                     decoration: const InputDecoration(labelText: 'Longitude'),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
                   ),
                 ),
               ],
@@ -236,7 +329,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                       if (addr.isEmpty || lat == null || lng == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Enter address and valid coordinates'),
+                            content:
+                                Text('Enter address and valid coordinates'),
                           ),
                         );
                         return;
@@ -250,7 +344,6 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
               child: const Text('Save Location'),
             ),
             const Divider(height: 32),
-
             _StepHeader(
               title: 'Step 2 — Create Your Menu',
               done: s.hasMenu,
@@ -260,73 +353,14 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () async {
-                    _catNameCtrl.clear();
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('New Category'),
-                        content: TextField(
-                          controller: _catNameCtrl,
-                          decoration: const InputDecoration(labelText: 'Name'),
-                        ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                          ElevatedButton(
-                              onPressed: () async {
-                                final name = _catNameCtrl.text.trim();
-                                if (name.isEmpty) return;
-                                await c.addCategory(name);
-                                if (!mounted) return;
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Add')),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: () => _showCategoryDialog(context, c),
                   icon: const Icon(Icons.add),
                   label: const Text('Add Category'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () async {
-                    _itemNameCtrl.clear();
-                    _itemPriceCtrl.clear();
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('New Menu Item'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              controller: _itemNameCtrl,
-                              decoration: const InputDecoration(labelText: 'Name'),
-                            ),
-                            TextField(
-                              controller: _itemPriceCtrl,
-                              decoration: const InputDecoration(labelText: 'Price (£)'),
-                              keyboardType: TextInputType.numberWithOptions(decimal: true),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                          ElevatedButton(
-                              onPressed: () async {
-                                final name = _itemNameCtrl.text.trim();
-                                final price = double.tryParse(_itemPriceCtrl.text.trim());
-                                if (name.isEmpty) return;
-                                await c.addItem(name: name, price: price);
-                                if (!mounted) return;
-                                Navigator.pop(context);
-                              },
-                              child: const Text('Add')),
-                        ],
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
+                  onPressed: () =>
+                      _showItemDialog(context, c, s.categories, null),
+                  icon: const Icon(Icons.fastfood),
                   label: const Text('Add Item'),
                 ),
               ],
@@ -338,6 +372,21 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                 dense: true,
                 title: Text(cat.name),
                 leading: const Icon(Icons.folder),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Rename',
+                      onPressed: () => _showCategoryDialog(context, c, cat),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Delete',
+                      onPressed: () => _confirmDeleteCategory(context, c, cat),
+                    ),
+                  ],
+                ),
               ),
             if (s.items.isNotEmpty) const SizedBox(height: 8),
             if (s.items.isNotEmpty) const Text('Items'),
@@ -345,15 +394,33 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
               ListTile(
                 dense: true,
                 title: Text(it.name),
-                subtitle: it.price != null ? Text('£${it.price!.toStringAsFixed(2)}') : null,
+                subtitle: it.price != null
+                    ? Text('£${it.price!.toStringAsFixed(2)}')
+                    : null,
                 leading: const Icon(Icons.fastfood),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit item',
+                      onPressed: () =>
+                          _showItemDialog(context, c, s.categories, it),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Delete',
+                      onPressed: () => _confirmDeleteItem(context, c, it),
+                    ),
+                  ],
+                ),
               ),
-
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: canFinish
                   ? () {
-                      Navigator.of(context).pushReplacementNamed('/home/restaurant/settings');
+                      Navigator.of(context)
+                          .pushReplacementNamed('/home/restaurant/settings');
                     }
                   : null,
               icon: const Icon(Icons.check_circle),
@@ -367,6 +434,252 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showCategoryDialog(
+    BuildContext context,
+    _SetupController controller, [
+    MenuCategory? category,
+  ]) async {
+    final isEdit = category != null;
+    _categoryNameCtrl.text = category?.name ?? '';
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(isEdit ? 'Edit Category' : 'New Category'),
+        content: TextField(
+          controller: _categoryNameCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Category name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = _categoryNameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final editingCategory = category;
+              final errorMessage = editingCategory != null
+                  ? await controller.updateCategory(
+                      categoryId: editingCategory.id,
+                      name: name,
+                    )
+                  : await controller.addCategory(name);
+              if (!mounted) return;
+              if (errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '$errorMessage '
+                      '(Check Supabase policies / schema for menu tables.)',
+                    ),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context, true);
+            },
+            child: Text(isEdit ? 'Save' : 'Add'),
+          ),
+        ],
+      ),
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEdit ? 'Category updated' : 'Category added'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showItemDialog(
+    BuildContext context,
+    _SetupController controller,
+    List<MenuCategory> categories,
+    MenuItem? item,
+  ) async {
+    final isEdit = item != null;
+    _itemNameCtrl.text = item?.name ?? '';
+    _itemPriceCtrl.text =
+        item?.price != null ? item!.price!.toStringAsFixed(2) : '';
+    String? tempCategoryId = item?.categoryId;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text(isEdit ? 'Edit Menu Item' : 'New Menu Item'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _itemNameCtrl,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _itemPriceCtrl,
+                    decoration: const InputDecoration(labelText: 'Price (£)'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String?>(
+                    value: tempCategoryId,
+                    onChanged: (value) =>
+                        setStateDialog(() => tempCategoryId = value),
+                    decoration: const InputDecoration(
+                      labelText: 'Category (optional)',
+                    ),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('No category'),
+                      ),
+                      ...categories.map(
+                        (c) => DropdownMenuItem<String?>(
+                          value: c.id,
+                          child: Text(c.name),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final name = _itemNameCtrl.text.trim();
+                    if (name.isEmpty) return;
+                    final price = double.tryParse(_itemPriceCtrl.text.trim());
+                    final editingItem = item;
+                    final errorMessage = editingItem != null
+                        ? await controller.updateItem(
+                            itemId: editingItem.id,
+                            name: name,
+                            price: price,
+                            categoryId: tempCategoryId,
+                          )
+                        : await controller.addItem(
+                            name: name,
+                            price: price,
+                            categoryId: tempCategoryId,
+                          );
+                    if (!mounted) return;
+                    if (errorMessage != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '$errorMessage '
+                            '(Check Supabase policies / schema for menu tables.)',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pop(context, true);
+                  },
+                  child: Text(isEdit ? 'Save' : 'Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEdit ? 'Item updated' : 'Item added'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteCategory(
+    BuildContext context,
+    _SetupController controller,
+    MenuCategory category,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: Text(
+          'Delete "${category.name}"? Items in this category will be left without a category.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final errorMessage = await controller.deleteCategory(category.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage ??
+                'Deleted "${category.name}"'
+                    '\n(RLS policies control who can edit these rows.)',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteItem(
+    BuildContext context,
+    _SetupController controller,
+    MenuItem item,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Item'),
+        content: Text('Delete "${item.name}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final errorMessage = await controller.deleteItem(item.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorMessage ??
+                'Deleted "${item.name}"'
+                    '\n(RLS policies control who can edit these rows.)',
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -390,5 +703,3 @@ class _StepHeader extends StatelessWidget {
     );
   }
 }
-
-

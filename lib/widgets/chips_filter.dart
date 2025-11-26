@@ -10,6 +10,7 @@ class ChipsFilter extends StatelessWidget {
     required this.onSelectionChanged,
     this.label,
     this.showClearButton = true,
+    this.enabled = true,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class ChipsFilter extends StatelessWidget {
   final void Function(List<String>) onSelectionChanged;
   final String? label;
   final bool showClearButton;
+  final bool enabled;
 
   void _toggleItem(String item) {
     final newSelection = List<String>.from(selectedItems);
@@ -48,7 +50,7 @@ class ChipsFilter extends StatelessWidget {
               ),
               if (showClearButton && selectedItems.isNotEmpty)
                 TextButton(
-                  onPressed: _clearSelection,
+                  onPressed: enabled ? _clearSelection : null,
                   child: const Text('Clear'),
                 ),
             ],
@@ -63,16 +65,13 @@ class ChipsFilter extends StatelessWidget {
             return FilterChip(
               selected: isSelected,
               label: Text(item),
-              onSelected: (_) => _toggleItem(item),
-              selectedColor: Theme.of(context)
-                  .colorScheme
-                  .primary
-                  .withValues(alpha: 0.3),
+              onSelected: enabled ? (_) => _toggleItem(item) : null,
+              selectedColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
               checkmarkColor: Theme.of(context).colorScheme.primary,
               labelStyle: TextStyle(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
+                color:
+                    isSelected ? Theme.of(context).colorScheme.primary : null,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             );

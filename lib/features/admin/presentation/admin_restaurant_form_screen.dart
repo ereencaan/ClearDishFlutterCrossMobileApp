@@ -19,6 +19,7 @@ class _AdminRestaurantFormScreenState
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _addrCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
   bool _visible = true;
@@ -31,6 +32,7 @@ class _AdminRestaurantFormScreenState
     if (r != null) {
       _nameCtrl.text = r.name;
       _addrCtrl.text = r.address ?? '';
+      _phoneCtrl.text = r.phone ?? '';
       _latCtrl.text = r.lat?.toString() ?? '';
       _lngCtrl.text = r.lng?.toString() ?? '';
       _visible = r.visible;
@@ -41,6 +43,7 @@ class _AdminRestaurantFormScreenState
   void dispose() {
     _nameCtrl.dispose();
     _addrCtrl.dispose();
+    _phoneCtrl.dispose();
     _latCtrl.dispose();
     _lngCtrl.dispose();
     super.dispose();
@@ -54,6 +57,7 @@ class _AdminRestaurantFormScreenState
       id: widget.restaurant?.id ?? '',
       name: _nameCtrl.text.trim(),
       address: _addrCtrl.text.trim().isEmpty ? null : _addrCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
       lat: _latCtrl.text.trim().isEmpty ? null : double.tryParse(_latCtrl.text),
       lng: _lngCtrl.text.trim().isEmpty ? null : double.tryParse(_lngCtrl.text),
       visible: _visible,
@@ -68,10 +72,13 @@ class _AdminRestaurantFormScreenState
     }
     setState(() => _saving = false);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content:
-          Text(res.isFailure ? (res.errorOrNull ?? 'Failed') : 'Saved successfully'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(res.isFailure
+            ? (res.errorOrNull ?? 'Failed')
+            : 'Saved successfully'),
+      ),
+    );
     if (res.isSuccess) context.pop();
   }
 
@@ -79,7 +86,8 @@ class _AdminRestaurantFormScreenState
   Widget build(BuildContext context) {
     final isEdit = widget.restaurant != null;
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? 'Edit Restaurant' : 'Add Restaurant')),
+      appBar:
+          AppBar(title: Text(isEdit ? 'Edit Restaurant' : 'Add Restaurant')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -106,6 +114,15 @@ class _AdminRestaurantFormScreenState
                   ),
                 ),
                 const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phoneCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -115,8 +132,8 @@ class _AdminRestaurantFormScreenState
                           labelText: 'Latitude',
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -127,8 +144,8 @@ class _AdminRestaurantFormScreenState
                           labelText: 'Longitude',
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                       ),
                     ),
                   ],
@@ -158,5 +175,3 @@ class _AdminRestaurantFormScreenState
     );
   }
 }
-
-

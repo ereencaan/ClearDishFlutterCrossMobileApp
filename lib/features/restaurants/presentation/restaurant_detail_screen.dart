@@ -5,6 +5,7 @@ import 'package:cleardish/data/repositories/restaurant_repo.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Restaurant detail screen
@@ -59,6 +60,9 @@ class _RestaurantDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Restaurant Details'),
+        leading: const AppBackButton(
+          fallbackRoute: '/home/restaurants',
+        ),
       ),
       body: _buildBody(),
       floatingActionButton: _restaurant != null
@@ -141,7 +145,8 @@ class _RestaurantDetailScreenState
                 final lng = _restaurant!.lng;
                 if (lat != null && lng != null) {
                   final url = Uri.parse(
-                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+                    'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+                  );
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 }
               },

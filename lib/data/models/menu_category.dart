@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Menu category model
-/// 
+///
 /// Represents a category within a restaurant's menu.
 class MenuCategory extends Equatable {
   const MenuCategory({
@@ -39,5 +39,3 @@ class MenuCategory extends Equatable {
   @override
   List<Object?> get props => [id, restaurantId, name, sortOrder];
 }
-
-

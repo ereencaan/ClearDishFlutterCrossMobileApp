@@ -6,6 +6,7 @@ import 'package:cleardish/features/auth/models/auth_role.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/app_input.dart';
+import 'package:cleardish/widgets/brand_logo.dart';
 
 /// Login screen
 ///
@@ -65,7 +66,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ClearDish'),
+        title: const BrandLogo(size: 32),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Center(
@@ -77,6 +79,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Align(
+                    child: BrandLogo(
+                      size: 72,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
                   Text(
                     widget.role == AuthRole.admin
                         ? 'Welcome Back, Admin'
@@ -84,65 +92,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? 'Welcome Back, Restaurant'
                             : 'Welcome Back',
                     style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   const Text(
                     'Sign in to continue',
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
-                  AppInput(
-                    label: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                    controller: _emailController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  AppInput(
-                    label: 'Password',
-                    obscureText: true,
-                    controller: _passwordController,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  AppButton(
-                    label: 'Sign In',
-                    isLoading: authState.isLoading,
-                    onPressed: _handleLogin,
-                  ),
-                  const SizedBox(height: 16),
-                  if (widget.role != AuthRole.admin)
-                    TextButton(
-                      onPressed: () => context.go(
-                        widget.role == AuthRole.restaurant
-                            ? '/register/restaurant'
-                            : '/register/user',
-                      ),
-                      child: const Text(
-                        "Don't have an account? Sign Up",
+                  const SizedBox(height: 32),
+                  Card(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AppInput(
+                            label: 'Email',
+                            keyboardType: TextInputType.emailAddress,
+                            controller: _emailController,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your email';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Please enter a valid email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          AppInput(
+                            label: 'Password',
+                            obscureText: true,
+                            controller: _passwordController,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          AppButton(
+                            label: 'Sign In',
+                            isLoading: authState.isLoading,
+                            onPressed: _handleLogin,
+                          ),
+                          if (widget.role != AuthRole.admin) ...[
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () => context.go(
+                                widget.role == AuthRole.restaurant
+                                    ? '/register/restaurant'
+                                    : '/register/user',
+                              ),
+                              child: const Text(
+                                "Don't have an account? Sign Up",
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),

@@ -4,7 +4,7 @@ import 'package:cleardish/data/sources/menu_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Menu repository
-/// 
+///
 /// Provides menu data operations.
 class MenuRepo {
   MenuRepo() : _api = MenuApi(SupabaseClient.instance);
@@ -18,5 +18,3 @@ class MenuRepo {
     return _api.getMenuByRestaurant(restaurantId);
   }
 }
-
-

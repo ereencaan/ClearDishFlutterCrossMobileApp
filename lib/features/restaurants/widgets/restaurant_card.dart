@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 
 /// Restaurant card widget
-/// 
+///
 /// Displays restaurant information in a card format.
 class RestaurantCard extends StatelessWidget {
   const RestaurantCard({
@@ -61,5 +61,3 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 }
-
-

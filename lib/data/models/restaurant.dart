@@ -8,6 +8,7 @@ class Restaurant extends Equatable {
     required this.id,
     required this.name,
     this.address,
+    this.phone,
     this.lat,
     this.lng,
     this.visible = true,
@@ -18,6 +19,7 @@ class Restaurant extends Equatable {
   final String id;
   final String name;
   final String? address;
+  final String? phone;
   final double? lat;
   final double? lng;
   final bool visible;
@@ -30,6 +32,7 @@ class Restaurant extends Equatable {
       id: map['id'] as String,
       name: map['name'] as String,
       address: map['address'] as String?,
+      phone: map['phone'] as String?,
       lat: (map['lat'] as num?)?.toDouble(),
       lng: (map['lng'] as num?)?.toDouble(),
       visible: (map['visible'] as bool?) ?? true,
@@ -46,6 +49,7 @@ class Restaurant extends Equatable {
       'id': id,
       'name': name,
       'address': address,
+      'phone': phone,
       'lat': lat,
       'lng': lng,
       'visible': visible,
@@ -55,5 +59,6 @@ class Restaurant extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, address, lat, lng, visible, createdAt, distanceMeters];
+  List<Object?> get props =>
+      [id, name, address, phone, lat, lng, visible, createdAt, distanceMeters];
 }

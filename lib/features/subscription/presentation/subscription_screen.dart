@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cleardish/widgets/app_button.dart';
 
 /// Subscription screen (placeholder)
-/// 
+///
 /// Placeholder screen for future subscription functionality.
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -57,5 +57,3 @@ class SubscriptionScreen extends StatelessWidget {
     );
   }
 }
-
-

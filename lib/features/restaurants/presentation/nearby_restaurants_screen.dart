@@ -6,18 +6,22 @@ import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/core/utils/result.dart';
 
-final _nearbyProvider = FutureProvider.autoDispose<List<Restaurant>>((ref) async {
+final _nearbyProvider =
+    FutureProvider.autoDispose<List<Restaurant>>((ref) async {
   final permission = await Geolocator.checkPermission();
   LocationPermission granted = permission;
   if (permission == LocationPermission.denied) {
     granted = await Geolocator.requestPermission();
   }
-  if (granted == LocationPermission.denied || granted == LocationPermission.deniedForever) {
+  if (granted == LocationPermission.denied ||
+      granted == LocationPermission.deniedForever) {
     throw Exception('Location permission denied');
   }
-  final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+  final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high);
   final api = RestaurantApi(SupabaseClient.instance);
-  final result = await api.getNearbyRestaurants(lat: pos.latitude, lng: pos.longitude, radiusKm: 5);
+  final result = await api.getNearbyRestaurants(
+      lat: pos.latitude, lng: pos.longitude, radiusKm: 5);
   if (result.isFailure) throw Exception(result.errorOrNull);
   return result.dataOrNull!;
 });

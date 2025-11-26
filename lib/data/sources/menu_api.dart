@@ -13,10 +13,14 @@ class MenuApi {
   /// Gets menu categories for a restaurant
   Future<Result<List<MenuCategory>>> getCategories(String restaurantId) async {
     try {
-      final response = await _client.supabaseClient.client.from('menu_categories').select().eq(
+      final response = await _client.supabaseClient.client
+          .from('menu_categories')
+          .select()
+          .eq(
             'restaurant_id',
             restaurantId,
-          ).order('sort_order');
+          )
+          .order('sort_order');
 
       final categories = (response as List)
           .map((json) => MenuCategory.fromMap(json as Map<String, dynamic>))
@@ -31,10 +35,11 @@ class MenuApi {
   /// Gets menu items for a restaurant
   Future<Result<List<MenuItem>>> getMenuItems(String restaurantId) async {
     try {
-      final response = await _client.supabaseClient.client.from('menu_items').select().eq(
-            'restaurant_id',
-            restaurantId,
-          );
+      final response =
+          await _client.supabaseClient.client.from('menu_items').select().eq(
+                'restaurant_id',
+                restaurantId,
+              );
 
       final items = (response as List)
           .map((json) => MenuItem.fromMap(json as Map<String, dynamic>))
@@ -67,9 +72,8 @@ class MenuApi {
       // Group items by category
       final Map<String, List<MenuItem>> menuMap = {};
       for (final category in categories) {
-        menuMap[category.id] = items
-            .where((item) => item.categoryId == category.id)
-            .toList();
+        menuMap[category.id] =
+            items.where((item) => item.categoryId == category.id).toList();
       }
 
       // Items without category
@@ -185,7 +189,10 @@ class MenuApi {
       if (price != null) data['price'] = price;
       if (allergens != null) data['allergens'] = allergens;
       if (diets != null) data['diets'] = diets;
-      await _client.supabaseClient.client.from('menu_items').update(data).eq('id', id);
+      await _client.supabaseClient.client
+          .from('menu_items')
+          .update(data)
+          .eq('id', id);
       return const Success(null);
     } catch (e) {
       return Failure('Failed to update item: ${e.toString()}');
@@ -194,7 +201,10 @@ class MenuApi {
 
   Future<Result<void>> deleteItem(String id) async {
     try {
-      await _client.supabaseClient.client.from('menu_items').delete().eq('id', id);
+      await _client.supabaseClient.client
+          .from('menu_items')
+          .delete()
+          .eq('id', id);
       return const Success(null);
     } catch (e) {
       return Failure('Failed to delete item: ${e.toString()}');
