@@ -322,24 +322,18 @@ class _RestaurantSettingsScreenState
                       spacing: 12,
                       children: [
                         ElevatedButton(
-                          onPressed: () async {
-                            await controller.createWeeklyBadge();
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Weekly badge created')),
-                            );
+                          onPressed: () {
+                            Navigator.of(context)
+                                .pushNamed('/home/restaurant/badges/new',
+                                    arguments: {'type': 'weekly'});
                           },
                           child: const Text('Add Weekly Badge'),
                         ),
                         ElevatedButton(
-                          onPressed: () async {
-                            await controller.createMonthlyBadge();
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Monthly badge created')),
-                            );
+                          onPressed: () {
+                            Navigator.of(context)
+                                .pushNamed('/home/restaurant/badges/new',
+                                    arguments: {'type': 'monthly'});
                           },
                           child: const Text('Add Monthly Badge'),
                         ),
