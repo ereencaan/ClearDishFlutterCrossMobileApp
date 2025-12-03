@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' show PointerDeviceKind;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
@@ -149,21 +150,24 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                     // Horizontal scroll with drag-friendly SingleChildScrollView
                     SizedBox(
                       height: 130,
-                      child: ListView.separated(
-                        primary: false,
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        itemCount: data.restaurants.length.clamp(0, 10),
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final r = data.restaurants[index];
-                          return _NearbyCard(
-                            restaurant: r,
-                            onTap: () =>
-                                context.go('/home/restaurants/${r.id}'),
-                          );
-                        },
+                      child: ScrollConfiguration(
+                        behavior: const _DragScrollBehavior(),
+                        child: ListView.separated(
+                          primary: false,
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.zero,
+                          itemCount: data.restaurants.length.clamp(0, 10),
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final r = data.restaurants[index];
+                            return _NearbyCard(
+                              restaurant: r,
+                              onTap: () =>
+                                  context.go('/home/restaurants/${r.id}'),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -414,4 +418,16 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
       ),
     );
   }
+}
+
+// Ensures horizontal lists can be dragged with touch, mouse and trackpad
+class _DragScrollBehavior extends ScrollBehavior {
+  const _DragScrollBehavior();
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
 }
