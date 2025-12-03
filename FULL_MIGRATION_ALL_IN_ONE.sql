@@ -102,8 +102,8 @@ create policy "own_change_request_read" on public.profile_change_requests
 create policy "own_change_request_insert" on public.profile_change_requests
   for insert with check (auth.uid() = user_id);
 create policy "admin_manage_change_requests" on public.profile_change_requests
-  for all using ((auth.jwt()->'user_metadata'->>'role') = 'admin')
-  with check ((auth.jwt()->'user_metadata'->>'role') = 'admin');
+  for all using ((auth.jwt()->'app_metadata'->>'role') = 'admin')
+  with check ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 alter table public.restaurants enable row level security;
 create policy "public_restaurants_read" on public.restaurants for select using (visible = true);

@@ -123,8 +123,8 @@ create policy "own_change_request_insert"
   for insert with check (auth.uid() = user_id);
 create policy "admin_manage_change_requests"
   on public.profile_change_requests
-  for all using ((auth.jwt()->'user_metadata'->>'role') = 'admin')
-  with check ((auth.jwt()->'user_metadata'->>'role') = 'admin');
+  for all using ((auth.jwt()->'app_metadata'->>'role') = 'admin')
+  with check ((auth.jwt()->'app_metadata'->>'role') = 'admin');
 
 alter table public.restaurants enable row level security;
 create policy "public_restaurants_read"
@@ -289,3 +289,20 @@ flutter run -d windows
 ```
 
 **Bitti! Login ekranı açılacak! 🎉**
+
+## 🔒 Supabase Security Advisor Uyarılarını Temizleme
+
+Security Advisor ekranında gördüğün:
+
+- `Exposed auth.users` / `Security Definer View`
+- `RLS references user_metadata`
+
+uyarıları için depo içindeki `supabase/security_advisor_fix.sql` dosyasını Supabase SQL Editor'da (service role ile) aynen çalıştır.
+
+Bu script şunları yapar:
+
+1. `analytics_top_*` view'larını `auth.users` referansı olmadan yeniden oluşturur.
+2. Kullanıcı rolleri `user_metadata` yerine `app_metadata` içine taşınır.
+3. Bütün RLS kuralları `auth.jwt()->'app_metadata'->>'role'` kullanarak tekrar oluşturulur (artık client tarafı role spoof edemez).
+
+Scripti çalıştırdıktan sonra Security Advisor > **Refresh** de ve tüm 6 uyarının kapandığını doğrula. Yeni admin kullanıcı eklerken rolü `app_metadata.role` alanına yazmayı unutma (örnek: Admin API çağrısında `app_metadata: { "role": "admin" }`).
