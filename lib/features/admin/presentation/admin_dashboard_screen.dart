@@ -120,6 +120,7 @@ class _OverviewGrid extends StatelessWidget {
         ),
         icon: Icons.storefront,
         color: color.primaryContainer,
+        onTap: () => context.go('/admin/restaurants'),
       ),
       _MetricCard(
         title: 'Users',
@@ -130,12 +131,15 @@ class _OverviewGrid extends StatelessWidget {
         ),
         icon: Icons.people,
         color: color.secondaryContainer,
+        onTap: () => context.go('/admin/users'),
       ),
       _MetricCard(
         title: 'Menu Items',
         value: '—',
         icon: Icons.restaurant_menu,
         color: color.tertiaryContainer,
+        // Go to restaurants listing; menu items are managed per restaurant
+        onTap: () => context.go('/admin/restaurants'),
       ),
     ];
 
@@ -282,16 +286,18 @@ class _MetricCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   final String title;
   final String value;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final card = Card(
       color: color.withOpacity(0.35),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -324,6 +330,12 @@ class _MetricCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+    if (onTap == null) return card;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: card,
     );
   }
 }
