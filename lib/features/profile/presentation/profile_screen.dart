@@ -255,6 +255,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               AppButton(
+                label: 'My Badges & Rewards',
+                isOutlined: true,
+                onPressed: () => context.go('/home/my-badges'),
+              ),
+              const SizedBox(height: 16),
+              AppButton(
                 label: 'Sign Out',
                 isOutlined: true,
                 onPressed: _handleLogout,
@@ -481,6 +487,24 @@ class _RestaurantOwnerProfilePanelState
       appBar: AppBar(
         title: const Text('Restaurant Profile'),
         leading: const AppBackButton(fallbackRoute: '/home/restaurants'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              final res =
+                  await ref.read(authControllerProvider.notifier).signOut();
+              if (!mounted) return;
+              if (res.isFailure) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text(res.errorOrNull ?? 'Failed to sign out')));
+              } else {
+                context.go('/welcome');
+              }
+            },
+          )
+        ],
       ),
       body: dataAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -703,54 +727,18 @@ class _RestaurantOwnerProfilePanelState
               runSpacing: 12,
               children: [
                 FilledButton(
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final start = DateTime(now.year, now.month, now.day)
-                        .subtract(Duration(days: now.weekday - 1));
-                    final end = start.add(const Duration(days: 6));
-                    final result = await _settingsApi.createBadge(
-                      restaurantId: restaurantId,
-                      type: 'weekly',
-                      periodStart: start,
-                      periodEnd: end,
-                    );
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          result.isFailure
-                              ? (result.errorOrNull ?? 'Failed to add badge')
-                              : 'Weekly badge added',
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: () =>
+                      context.push('/home/restaurant/badges/new', extra: {'type': 'weekly'}),
                   child: const Text('Add Weekly Badge'),
                 ),
                 FilledButton(
-                  onPressed: () async {
-                    final now = DateTime.now();
-                    final start = DateTime(now.year, now.month, 1);
-                    final end = DateTime(now.year, now.month + 1, 1)
-                        .subtract(const Duration(days: 1));
-                    final result = await _settingsApi.createBadge(
-                      restaurantId: restaurantId,
-                      type: 'monthly',
-                      periodStart: start,
-                      periodEnd: end,
-                    );
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          result.isFailure
-                              ? (result.errorOrNull ?? 'Failed to add badge')
-                              : 'Monthly badge added',
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: () =>
+                      context.push('/home/restaurant/badges/new', extra: {'type': 'monthly'}),
                   child: const Text('Add Monthly Badge'),
+                ),
+                OutlinedButton(
+                  onPressed: () => context.go('/home/restaurant/badges/rules'),
+                  child: const Text('Manage Rules'),
                 ),
               ],
             ),

@@ -21,6 +21,8 @@ import 'package:cleardish/features/admin/presentation/admin_restaurants_screen.d
 import 'package:cleardish/features/admin/presentation/admin_restaurant_form_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_menu_items_screen.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_badge_form_screen.dart';
+import 'package:cleardish/features/restaurants/presentation/owner_badge_rules_screen.dart';
+import 'package:cleardish/features/profile/presentation/my_badges_screen.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_setup_screen.dart';
 
@@ -172,6 +174,16 @@ final class AppRouter {
               }
               return RestaurantBadgeFormScreen(initialType: type);
             },
+          ),
+          GoRoute(
+            path: '/home/restaurant/badges/rules',
+            name: 'restaurant-badge-rules',
+            builder: (context, state) => const OwnerBadgeRulesScreen(),
+          ),
+          GoRoute(
+            path: '/home/my-badges',
+            name: 'my-badges',
+            builder: (context, state) => const MyBadgesScreen(),
           ),
           GoRoute(
             path: '/home/menu/:restaurantId',

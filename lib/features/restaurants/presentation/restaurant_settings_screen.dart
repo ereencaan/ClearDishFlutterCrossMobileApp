@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_back_button.dart';
 
@@ -138,6 +140,8 @@ class _SettingsController extends StateNotifier<_SettingsState> {
     required String title,
     String? description,
     required double percentOff,
+    DateTime? startsAt,
+    DateTime? endsAt,
   }) async {
     if (state.restaurantId == null) return;
     await _api.createPromotion(
@@ -145,6 +149,8 @@ class _SettingsController extends StateNotifier<_SettingsState> {
       title: title,
       description: description,
       percentOff: percentOff,
+      startsAt: startsAt,
+      endsAt: endsAt,
     );
   }
 }
@@ -161,11 +167,15 @@ class _RestaurantSettingsScreenState
     extends ConsumerState<RestaurantSettingsScreen> {
   final _addressCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _postcodeCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
   final _promoTitleCtrl = TextEditingController();
   final _promoDescCtrl = TextEditingController();
   final _promoPercentCtrl = TextEditingController(text: '10');
+  final _postcodeApi = PostcodeApi();
+  DateTime _promoStart = DateTime.now();
+  DateTime _promoEnd = DateTime.now().add(const Duration(days: 7));
 
   @override
   void dispose() {
@@ -219,6 +229,49 @@ class _RestaurantSettingsScreenState
                     const Text('Address & Location',
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _postcodeCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'UK Postcode',
+                              hintText: 'e.g. E1 6AN',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.tonal(
+                          onPressed: () async {
+                            final res =
+                                await _postcodeApi.lookup(_postcodeCtrl.text);
+                            if (!mounted) return;
+                            if (res is Success) {
+                              final data = (res as Success<PostcodeLookup>).data;
+                              _addressCtrl.text = data.suggestedAddress;
+                              _latCtrl.text = data.lat.toStringAsFixed(6);
+                              _lngCtrl.text = data.lng.toStringAsFixed(6);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Found ${data.postcode} → ${data.suggestedAddress}'),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text((res as Failure).message),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Find address'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _addressCtrl,
@@ -323,17 +376,17 @@ class _RestaurantSettingsScreenState
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.of(context)
-                                .pushNamed('/home/restaurant/badges/new',
-                                    arguments: {'type': 'weekly'});
+                            if (!mounted) return;
+                            context.push('/home/restaurant/badges/new',
+                                extra: {'type': 'weekly'});
                           },
                           child: const Text('Add Weekly Badge'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.of(context)
-                                .pushNamed('/home/restaurant/badges/new',
-                                    arguments: {'type': 'monthly'});
+                            if (!mounted) return;
+                            context.push('/home/restaurant/badges/new',
+                                extra: {'type': 'monthly'});
                           },
                           child: const Text('Add Monthly Badge'),
                         ),
@@ -372,6 +425,57 @@ class _RestaurantSettingsScreenState
                       ),
                     ),
                     const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _promoStart,
+                                firstDate: DateTime.now()
+                                    .subtract(const Duration(days: 1)),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 365)),
+                              );
+                              if (picked != null) {
+                                setState(() => _promoStart = picked);
+                                if (_promoEnd.isBefore(_promoStart)) {
+                                  setState(() => _promoEnd =
+                                      _promoStart.add(const Duration(days: 7)));
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_today),
+                            label: Text(
+                              'Starts: ${_promoStart.toLocal().toString().split(' ').first}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _promoEnd,
+                                firstDate: _promoStart,
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 730)),
+                              );
+                              if (picked != null) {
+                                setState(() => _promoEnd = picked);
+                              }
+                            },
+                            icon: const Icon(Icons.calendar_month),
+                            label: Text(
+                              'Ends: ${_promoEnd.toLocal().toString().split(' ').first}',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: _promoPercentCtrl,
                       decoration: const InputDecoration(
@@ -394,6 +498,8 @@ class _RestaurantSettingsScreenState
                               ? null
                               : _promoDescCtrl.text.trim(),
                           percentOff: percent,
+                          startsAt: _promoStart,
+                          endsAt: _promoEnd,
                         );
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/menu_api.dart';
+import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/menu_category.dart';
 import 'package:cleardish/data/models/menu_item.dart';
@@ -242,11 +243,13 @@ class RestaurantSetupScreen extends ConsumerStatefulWidget {
 
 class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
   final _addressCtrl = TextEditingController();
+  final _postcodeCtrl = TextEditingController();
   final _categoryNameCtrl = TextEditingController();
   final _itemNameCtrl = TextEditingController();
   final _itemPriceCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
+  final _postcodeApi = PostcodeApi();
 
   @override
   void dispose() {
@@ -297,6 +300,49 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                     _StepHeader(
                       title: 'Step 1 — Address & Location',
                       done: s.hasLocation,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _postcodeCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'UK Postcode',
+                              hintText: 'e.g. E1 6AN',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        FilledButton.tonal(
+                          onPressed: () async {
+                            final res =
+                                await _postcodeApi.lookup(_postcodeCtrl.text);
+                            if (!mounted) return;
+                            if (res is Success) {
+                              final data = (res as Success<PostcodeLookup>).data;
+                              _addressCtrl.text = data.suggestedAddress;
+                              _latCtrl.text = data.lat.toStringAsFixed(6);
+                              _lngCtrl.text = data.lng.toStringAsFixed(6);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Found ${data.postcode} → ${data.suggestedAddress}'),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text((res as Failure).message),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Find address'),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     TextField(

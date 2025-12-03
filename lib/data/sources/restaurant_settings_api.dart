@@ -1,5 +1,6 @@
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/promotion.dart';
+import 'package:cleardish/data/models/badge.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
@@ -175,6 +176,25 @@ class RestaurantSettingsApi {
       return const Success(null);
     } catch (e) {
       return Failure('Failed to delete promotion: $e');
+    }
+  }
+
+  /// Active badges for a restaurant (current time within period)
+  Future<Result<List<Badge>>> getActiveBadges(String restaurantId) async {
+    try {
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+      final rows = await _client.supabaseClient.client
+          .from('restaurant_badges')
+          .select()
+          .eq('restaurant_id', restaurantId)
+          .lte('period_start', nowIso)
+          .gte('period_end', nowIso)
+          .order('period_end', ascending: false);
+      final data =
+          (rows as List).map((e) => Badge.fromMap(e as Map<String, dynamic>)).toList();
+      return Success(data);
+    } catch (e) {
+      return Failure('Failed to load badges: $e');
     }
   }
 }

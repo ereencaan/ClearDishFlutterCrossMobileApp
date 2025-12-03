@@ -12,6 +12,7 @@ import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/controllers/restaurants_controller.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurant_card.dart';
 
+
 final _ownerRestaurantProvider =
     FutureProvider.autoDispose<Result<Restaurant>>((ref) async {
   final api = RestaurantSettingsApi(SupabaseClient.instance);
@@ -242,11 +243,36 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
         itemCount: state.filteredRestaurants.length,
         itemBuilder: (context, index) {
           final restaurant = state.filteredRestaurants[index];
-          return RestaurantCard(
-            restaurant: restaurant,
-            onTap: () {
-              context.go('/home/restaurants/${restaurant.id}');
-            },
+          return Stack(
+            children: [
+              RestaurantCard(
+                restaurant: restaurant,
+                onTap: () {
+                  context.go('/home/restaurants/${restaurant.id}');
+                },
+              ),
+              // Active badge chip (lazy loaded)
+              Positioned(
+                right: 24,
+                top: 24,
+                child: FutureBuilder(
+                  future: RestaurantSettingsApi(SupabaseClient.instance)
+                      .getActiveBadges(restaurant.id),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const SizedBox.shrink();
+                    final res = snapshot.data as Result<List<dynamic>>;
+                    if (res is Failure) return const SizedBox.shrink();
+                    final list = (res as Success).data as List;
+                    if (list.isEmpty) return const SizedBox.shrink();
+                    final type = (list.first as dynamic).type as String? ?? 'Badge';
+                    return Chip(
+                      label: Text(type[0].toUpperCase() + type.substring(1)),
+                      avatar: const Icon(Icons.verified, size: 16),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),

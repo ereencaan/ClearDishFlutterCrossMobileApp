@@ -141,8 +141,8 @@ class _RestaurantBadgeFormScreenState
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'They are stored in the table public.restaurant_badges with: '
-                      'type (weekly/monthly), period_start, period_end.',
+                      'Choose weekly or monthly, set the dates, and we’ll highlight your place '
+                      'during that period. Badges automatically expire at the end date.',
                       style: TextStyle(color: Colors.white70),
                     ),
                   ],
@@ -213,4 +213,3 @@ class _RestaurantBadgeFormScreenState
     );
   }
 }
-
