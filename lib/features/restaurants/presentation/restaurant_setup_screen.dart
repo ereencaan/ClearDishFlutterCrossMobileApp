@@ -288,38 +288,59 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _StepHeader(
-              title: 'Step 1 — Address & Location',
-              done: s.hasLocation,
-            ),
-            TextField(
-              controller: _addressCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Restaurant Address'),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _latCtrl,
-                    decoration: const InputDecoration(labelText: 'Latitude'),
-                    keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _lngCtrl,
-                    decoration: const InputDecoration(labelText: 'Longitude'),
-                    keyboardType:
-                        TextInputType.numberWithOptions(decimal: true),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _StepHeader(
+                      title: 'Step 1 — Address & Location',
+                      done: s.hasLocation,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _addressCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Restaurant Address',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _latCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Latitude',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _lngCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Longitude',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
               onPressed: s.restaurantId == null
                   ? null
                   : () async {
@@ -341,32 +362,43 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                         const SnackBar(content: Text('Location saved')),
                       );
                     },
-              child: const Text('Save Location'),
-            ),
-            const Divider(height: 32),
-            _StepHeader(
-              title: 'Step 2 — Create Your Menu',
-              done: s.hasMenu,
-            ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => _showCategoryDialog(context, c),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Category'),
+                      child: const Text('Save Location'),
+                    ),
+                  ],
                 ),
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      _showItemDialog(context, c, s.categories, null),
-                  icon: const Icon(Icons.fastfood),
-                  label: const Text('Add Item'),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            if (s.categories.isNotEmpty) const Text('Categories'),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _StepHeader(
+                      title: 'Step 2 — Create Your Menu',
+                      done: s.hasMenu,
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _showCategoryDialog(context, c),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add Category'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _showItemDialog(context, c, s.categories, null),
+                          icon: const Icon(Icons.fastfood),
+                          label: const Text('Add Item'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (s.categories.isNotEmpty) const Text('Categories'),
             for (final cat in s.categories)
               ListTile(
                 dense: true,
@@ -388,8 +420,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   ],
                 ),
               ),
-            if (s.items.isNotEmpty) const SizedBox(height: 8),
-            if (s.items.isNotEmpty) const Text('Items'),
+                    if (s.items.isNotEmpty) const SizedBox(height: 8),
+                    if (s.items.isNotEmpty) const Text('Items'),
             for (final it in s.items)
               ListTile(
                 dense: true,
@@ -415,6 +447,10 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   ],
                 ),
               ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: canFinish

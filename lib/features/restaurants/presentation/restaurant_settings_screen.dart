@@ -208,100 +208,201 @@ class _RestaurantSettingsScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Address & Location',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-                controller: _addressCtrl,
-                decoration: const InputDecoration(labelText: 'Address')),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phoneCtrl,
-              decoration: const InputDecoration(labelText: 'Phone (optional)'),
-              keyboardType: TextInputType.phone,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Address & Location',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _addressCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Address',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _phoneCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone (optional)',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _latCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Lat',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true, signed: false),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _lngCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Lng',
+                              filled: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true, signed: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: state.restaurantId == null
+                          ? null
+                          : () async {
+                              final lat =
+                                  double.tryParse(_latCtrl.text.trim());
+                              final lng =
+                                  double.tryParse(_lngCtrl.text.trim());
+                              await controller.saveAddress(
+                                address: _addressCtrl.text.trim(),
+                                phone: _phoneCtrl.text.trim().isEmpty
+                                    ? null
+                                    : _phoneCtrl.text.trim(),
+                                lat: lat,
+                                lng: lng,
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Saved')),
+                              );
+                            },
+                      child: const Text('Save Address & Location'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            Row(
-              children: [
-                Expanded(
-                    child: TextField(
-                        controller: _latCtrl,
-                        decoration: const InputDecoration(labelText: 'Lat'))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: TextField(
-                        controller: _lngCtrl,
-                        decoration: const InputDecoration(labelText: 'Lng'))),
-              ],
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Badges',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            await controller.createWeeklyBadge();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Weekly badge created')),
+                            );
+                          },
+                          child: const Text('Add Weekly Badge'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            await controller.createMonthlyBadge();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Monthly badge created')),
+                            );
+                          },
+                          child: const Text('Add Monthly Badge'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: state.restaurantId == null
-                  ? null
-                  : () async {
-                      final lat = double.tryParse(_latCtrl.text.trim());
-                      final lng = double.tryParse(_lngCtrl.text.trim());
-                      await controller.saveAddress(
-                        address: _addressCtrl.text.trim(),
-                        phone: _phoneCtrl.text.trim().isEmpty
-                            ? null
-                            : _phoneCtrl.text.trim(),
-                        lat: lat,
-                        lng: lng,
-                      );
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(const SnackBar(content: Text('Saved')));
-                    },
-              child: const Text('Save Address & Location'),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('Promotions',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _promoTitleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _promoDescCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _promoPercentCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Percent off (0-100)',
+                        filled: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final percent =
+                            double.tryParse(_promoPercentCtrl.text.trim()) ??
+                                0;
+                        await controller.createPromotion(
+                          title: _promoTitleCtrl.text.trim(),
+                          description: _promoDescCtrl.text.trim().isEmpty
+                              ? null
+                              : _promoDescCtrl.text.trim(),
+                          percentOff: percent,
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Promotion created')),
+                        );
+                      },
+                      child: const Text('Create Promotion'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const Divider(height: 32),
-            const Text('Badges',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              children: [
-                ElevatedButton(
-                    onPressed: controller.createWeeklyBadge,
-                    child: const Text('Add Weekly Badge')),
-                ElevatedButton(
-                    onPressed: controller.createMonthlyBadge,
-                    child: const Text('Add Monthly Badge')),
-              ],
-            ),
-            const Divider(height: 32),
-            const Text('Promotions',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-                controller: _promoTitleCtrl,
-                decoration: const InputDecoration(labelText: 'Title')),
-            TextField(
-                controller: _promoDescCtrl,
-                decoration: const InputDecoration(labelText: 'Description')),
-            TextField(
-                controller: _promoPercentCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Percent off (0-100)')),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () async {
-                final percent =
-                    double.tryParse(_promoPercentCtrl.text.trim()) ?? 0;
-                await controller.createPromotion(
-                  title: _promoTitleCtrl.text.trim(),
-                  description: _promoDescCtrl.text.trim().isEmpty
-                      ? null
-                      : _promoDescCtrl.text.trim(),
-                  percentOff: percent,
-                );
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Promotion created')));
-              },
-              child: const Text('Create Promotion'),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             if (state.error != null)
               Text(state.error!, style: const TextStyle(color: Colors.red)),
           ],
