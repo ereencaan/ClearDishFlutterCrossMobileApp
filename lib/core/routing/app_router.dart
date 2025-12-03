@@ -19,6 +19,7 @@ import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart
 import 'package:cleardish/features/common/presentation/loading_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurants_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurant_form_screen.dart';
+import 'package:cleardish/features/admin/presentation/admin_menu_items_screen.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_setup_screen.dart';
 
@@ -90,6 +91,11 @@ final class AppRouter {
         path: '/admin/restaurants',
         name: 'admin-restaurants',
         builder: (context, state) => const AdminRestaurantsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/menu-items',
+        name: 'admin-menu-items',
+        builder: (context, state) => const AdminMenuItemsScreen(),
       ),
       GoRoute(
         path: '/admin/restaurants/new',

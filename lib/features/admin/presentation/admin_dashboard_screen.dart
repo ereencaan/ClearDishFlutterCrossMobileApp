@@ -138,8 +138,7 @@ class _OverviewGrid extends StatelessWidget {
         value: '—',
         icon: Icons.restaurant_menu,
         color: color.tertiaryContainer,
-        // Go to restaurants listing; menu items are managed per restaurant
-        onTap: () => context.go('/admin/restaurants'),
+        onTap: () => context.go('/admin/menu-items'),
       ),
     ];
 
