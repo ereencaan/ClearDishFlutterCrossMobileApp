@@ -44,14 +44,17 @@ class RestaurantSettingsApi {
     double? lng,
   }) async {
     try {
-      final data = {
-        'id': restaurantId,
+      final data = <String, dynamic>{
         'address': address,
         if (phone != null) 'phone': phone,
-        'lat': lat,
-        'lng': lng,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
       };
-      await _client.supabaseClient.client.from('restaurants').upsert(data);
+      // Use update instead of upsert to avoid INSERT path and RLS 'new row' checks
+      await _client.supabaseClient.client
+          .from('restaurants')
+          .update(data)
+          .eq('id', restaurantId);
       final r = await _client.supabaseClient.client
           .from('restaurants')
           .select()

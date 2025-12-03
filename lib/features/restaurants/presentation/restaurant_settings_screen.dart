@@ -74,13 +74,13 @@ class _SettingsController extends StateNotifier<_SettingsState> {
     }
   }
 
-  Future<void> saveAddress({
+  Future<bool> saveAddress({
     required String address,
     String? phone,
     double? lat,
     double? lng,
   }) async {
-    if (state.restaurantId == null) return;
+    if (state.restaurantId == null) return false;
     state = state.copyWith(isLoading: true, error: null);
     final result = await _api.saveAddress(
       restaurantId: state.restaurantId!,
@@ -98,9 +98,11 @@ class _SettingsController extends StateNotifier<_SettingsState> {
         lat: r.lat,
         lng: r.lng,
       );
+      return true;
     } else {
       state =
           state.copyWith(isLoading: false, error: (result as Failure).message);
+      return false;
     }
   }
 
@@ -277,7 +279,7 @@ class _RestaurantSettingsScreenState
                                   double.tryParse(_latCtrl.text.trim());
                               final lng =
                                   double.tryParse(_lngCtrl.text.trim());
-                              await controller.saveAddress(
+                              final ok = await controller.saveAddress(
                                 address: _addressCtrl.text.trim(),
                                 phone: _phoneCtrl.text.trim().isEmpty
                                     ? null
@@ -286,9 +288,18 @@ class _RestaurantSettingsScreenState
                                 lng: lng,
                               );
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Saved')),
-                              );
+                              if (ok) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Saved')),
+                                );
+                              } else {
+                                final err =
+                                    ref.read(_settingsProvider).error ??
+                                        'Failed to save';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(err)),
+                                );
+                              }
                             },
                       child: const Text('Save Address & Location'),
                     ),
