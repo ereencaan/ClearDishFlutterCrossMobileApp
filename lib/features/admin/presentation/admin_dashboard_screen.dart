@@ -33,6 +33,16 @@ final _usersFutureProvider =
   }
 });
 
+final _menuItemsCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  try {
+    final rows = await SupabaseClient.instance.supabaseClient.client
+        .from('menu_items')
+        .select('id');
+    return (rows as List).length;
+  } catch (_) {
+    return 0;
+  }
+});
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
@@ -40,6 +50,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final restaurantsAsync = ref.watch(_restaurantsFutureProvider);
     final usersAsync = ref.watch(_usersFutureProvider);
+    final menuItemsCountAsync = ref.watch(_menuItemsCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -75,6 +86,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   isWide: isWide,
                   restaurantsAsync: restaurantsAsync,
                   usersAsync: usersAsync,
+                  menuItemsCountAsync: menuItemsCountAsync,
                 ),
                 const SizedBox(height: 24),
                 _QuickLinks(),
@@ -101,11 +113,13 @@ class _OverviewGrid extends StatelessWidget {
     required this.isWide,
     required this.restaurantsAsync,
     required this.usersAsync,
+    required this.menuItemsCountAsync,
   });
 
   final bool isWide;
   final AsyncValue<List<Restaurant>> restaurantsAsync;
   final AsyncValue<List<UserProfile>> usersAsync;
+  final AsyncValue<int> menuItemsCountAsync;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +149,11 @@ class _OverviewGrid extends StatelessWidget {
       ),
       _MetricCard(
         title: 'Menu Items',
-        value: '—',
+        value: menuItemsCountAsync.when(
+          data: (c) => c.toString(),
+          loading: () => '—',
+          error: (_, __) => '—',
+        ),
         icon: Icons.restaurant_menu,
         color: color.tertiaryContainer,
         onTap: () => context.go('/admin/menu-items'),
