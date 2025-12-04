@@ -75,88 +75,93 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 980),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Align(
-                      alignment: Alignment.center,
-                      child: BrandLogo(
-                        size: 96,
-                        showText: false,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Align(
+                        alignment: Alignment.center,
+                        child: BrandLogo(
+                          size: 96,
+                          showText: false,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => context.go('/login/admin'),
-                        child: const Text('Admin sign in'),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.go('/login/admin'),
+                          child: const Text('Admin sign in'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Healthy choices, with confidence.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 32),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth > 720;
-                        final double cardWidth =
-                            isWide ? 320 : (constraints.maxWidth - 48);
-                        final children = [
-                          _AnimatedRoleCard(
-                            delayMs: 0,
-                            child: _RoleCard(
-                              title: 'I am a User',
-                              subtitle: 'Discover restaurants and order safely',
-                              icon: Icons.person,
-                              primaryActionText: 'Sign In',
-                              secondaryActionText: 'Create Account',
-                              onPrimary: () => context.go('/login/user'),
-                              onSecondary: () => context.go('/register/user'),
-                              width: cardWidth,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Healthy choices, with confidence.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 32),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 720;
+                          final double cardWidth =
+                              isWide ? 320 : (constraints.maxWidth - 48);
+                          final children = [
+                            _AnimatedRoleCard(
+                              delayMs: 0,
+                              child: _RoleCard(
+                                title: 'I am a User',
+                                subtitle:
+                                    'Discover restaurants and order safely',
+                                icon: Icons.person,
+                                primaryActionText: 'Sign In',
+                                secondaryActionText: 'Create Account',
+                                onPrimary: () => context.go('/login/user'),
+                                onSecondary: () =>
+                                    context.go('/register/user'),
+                                width: cardWidth,
+                              ),
                             ),
-                          ),
-                          _AnimatedRoleCard(
-                            delayMs: 120,
-                            child: _RoleCard(
-                              title: 'I am a Restaurant Owner',
-                              subtitle:
-                                  'Manage your menu, badges and promotions',
-                              icon: Icons.storefront,
-                              primaryActionText: 'Sign In',
-                              secondaryActionText: 'Create Account',
-                              onPrimary: () => context.go('/login/restaurant'),
-                              onSecondary: () =>
-                                  context.go('/register/restaurant'),
-                              width: cardWidth,
+                            _AnimatedRoleCard(
+                              delayMs: 120,
+                              child: _RoleCard(
+                                title: 'I am a Restaurant Owner',
+                                subtitle:
+                                    'Manage your menu, badges and promotions',
+                                icon: Icons.storefront,
+                                primaryActionText: 'Sign In',
+                                secondaryActionText: 'Create Account',
+                                onPrimary: () =>
+                                    context.go('/login/restaurant'),
+                                onSecondary: () =>
+                                    context.go('/register/restaurant'),
+                                width: cardWidth,
+                              ),
                             ),
-                          ),
-                        ];
-                        return isWide
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  children[0],
-                                  const SizedBox(width: 24),
-                                  children[1],
-                                ],
-                              )
-                            : Column(
-                                children: [
-                                  children[0],
-                                  const SizedBox(height: 24),
-                                  children[1],
-                                ],
-                              );
-                      },
-                    ),
-                  ],
+                          ];
+                          return isWide
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    children[0],
+                                    const SizedBox(width: 24),
+                                    children[1],
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    children[0],
+                                    const SizedBox(height: 24),
+                                    children[1],
+                                  ],
+                                );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
