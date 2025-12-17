@@ -1,6 +1,5 @@
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/promotion.dart';
-import 'package:cleardish/data/models/badge.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
@@ -48,10 +47,9 @@ class RestaurantSettingsApi {
       final data = <String, dynamic>{
         'address': address,
         if (phone != null) 'phone': phone,
-        if (lat != null) 'lat': lat,
-        if (lng != null) 'lng': lng,
+        'lat': lat,
+        'lng': lng,
       };
-      // Use update instead of upsert to avoid INSERT path and RLS 'new row' checks
       await _client.supabaseClient.client
           .from('restaurants')
           .update(data)
@@ -124,27 +122,32 @@ class RestaurantSettingsApi {
     String? phone,
   }) async {
     try {
-      final uid = _client.auth.currentUser?.id;
-      if (uid == null) return const Failure('Not authenticated');
-
-      final inserted = await _client.supabaseClient.client
-          .from('restaurants')
-          .insert({
-            'name': name,
-            'address': address,
-            'phone': phone,
-            'visible': true,
-          })
-          .select()
-          .single();
-
-      final restaurantId = inserted['id'] as String;
-
-      await _client.supabaseClient.client.from('restaurant_admins').insert({
-        'restaurant_id': restaurantId,
-        'user_id': uid,
-      });
-
+      // Pass user id explicitly to match the SQL signature
+      final userId = _client.auth.currentUser?.id;
+      final res = await _client.supabaseClient.client.rpc(
+        'create_restaurant_with_owner',
+        params: {
+          'p_name': name,
+          'p_address': address,
+          'p_phone': phone,
+          'p_user_id': userId,
+        },
+      );
+      if (res == null) {
+        return const Failure('Failed to create restaurant (null response)');
+      }
+      // Supabase rpc returns either raw value or map { create_restaurant_with_owner: value }
+      final restaurantId = res is String
+          ? res
+          : (res is Map<String, dynamic>
+              ? res.values.firstWhere(
+                  (v) => v is String,
+                  orElse: () => null,
+                )
+              : null) as String?;
+      if (restaurantId == null) {
+        return const Failure('Failed to create restaurant');
+      }
       return Success(restaurantId);
     } catch (e) {
       return Failure('Failed to create restaurant: ${e.toString()}');
@@ -176,25 +179,6 @@ class RestaurantSettingsApi {
       return const Success(null);
     } catch (e) {
       return Failure('Failed to delete promotion: $e');
-    }
-  }
-
-  /// Active badges for a restaurant (current time within period)
-  Future<Result<List<Badge>>> getActiveBadges(String restaurantId) async {
-    try {
-      final nowIso = DateTime.now().toUtc().toIso8601String();
-      final rows = await _client.supabaseClient.client
-          .from('restaurant_badges')
-          .select()
-          .eq('restaurant_id', restaurantId)
-          .lte('period_start', nowIso)
-          .gte('period_end', nowIso)
-          .order('period_end', ascending: false);
-      final data =
-          (rows as List).map((e) => Badge.fromMap(e as Map<String, dynamic>)).toList();
-      return Success(data);
-    } catch (e) {
-      return Failure('Failed to load badges: $e');
     }
   }
 }

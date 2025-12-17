@@ -12,6 +12,7 @@ import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/repositories/profile_repo.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -32,6 +33,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
   // User profile fields
   final _fullNameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -42,6 +45,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _restaurantNameController = TextEditingController();
   final _restaurantAddressController = TextEditingController();
   final _restaurantPhoneController = TextEditingController();
+  // postcode dialog state (ephemeral)
+  String _postcodeQuery = '';
+  List<String> _postcodeSuggestions = const [];
 
   @override
   void dispose() {
@@ -61,10 +67,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    // Prepare extra metadata to persist through email confirmation
+    final extraMeta = <String, dynamic>{};
+    if (widget.role == AuthRole.user) {
+      extraMeta.addAll({
+        'full_name': _fullNameController.text.trim(),
+        'address': _addressController.text.trim(),
+        'allergens': _selectedAllergens,
+        'diets': _selectedDiets,
+      });
+    } else if (widget.role == AuthRole.restaurant) {
+      extraMeta.addAll({
+        'restaurant_name': _restaurantNameController.text.trim(),
+        'address': _restaurantAddressController.text.trim(),
+      });
+    }
+
     final result = await ref.read(authControllerProvider.notifier).register(
           email: _emailController.text.trim().toLowerCase(),
           password: _passwordController.text,
           role: widget.role,
+          metadataExtra: extraMeta,
         );
 
     if (!mounted) return;
@@ -125,16 +148,123 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (widget.role == AuthRole.restaurant) {
       final api = RestaurantSettingsApi(SupabaseClient.instance);
-      await api.createRestaurantWithOwner(
+      final res = await api.createRestaurantWithOwner(
         name: _restaurantNameController.text.trim(),
         address: _restaurantAddressController.text.trim(),
         phone: _restaurantPhoneController.text.trim().isEmpty
             ? null
             : _restaurantPhoneController.text.trim(),
       );
+      if (res.isFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.errorOrNull ?? 'Failed to create restaurant'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       context.go('/home/restaurant/setup');
       return;
     }
+  }
+
+  Future<void> _openPostcodePicker({required bool forRestaurant}) async {
+    _postcodeQuery = '';
+    _postcodeSuggestions = const [];
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSt) {
+            Future<void> _search(String q) async {
+              _postcodeQuery = q.trim();
+              if (_postcodeQuery.length < 2) {
+                setSt(() => _postcodeSuggestions = const []);
+                return;
+              }
+              try {
+                final api = PostcodeApi();
+                final res = await api.autocomplete(_postcodeQuery);
+                setSt(() => _postcodeSuggestions = res);
+              } catch (_) {
+                setSt(() => _postcodeSuggestions = const []);
+              }
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 12,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Find address by UK postcode',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Postcode',
+                        hintText: 'e.g. SW1A 1AA',
+                      ),
+                      onChanged: _search,
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: _postcodeSuggestions.isEmpty
+                          ? const SizedBox.shrink()
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: _postcodeSuggestions.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final pc = _postcodeSuggestions[index];
+                                return ListTile(
+                                  leading: const Icon(Icons.local_post_office),
+                                  title: Text(pc),
+                                  onTap: () async {
+                                    try {
+                                      final api = PostcodeApi();
+                                      final detail = await api.lookup(pc);
+                                      final addr = detail.formattedAddress();
+                                      if (forRestaurant) {
+                                        _restaurantAddressController.text =
+                                            addr;
+                                      } else {
+                                        _addressController.text = addr;
+                                      }
+                                      if (Navigator.of(context).canPop()) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    } catch (_) {}
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -189,14 +319,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  isRestaurant
-                                      ? 'Create Restaurant Account'
-                                      : 'Create Account',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
+                                Expanded(
+                                  child: Text(
+                                    isRestaurant
+                                        ? 'Create Restaurant Account'
+                                        : 'Create Account',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -228,8 +362,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             const SizedBox(height: 12),
                             AppInput(
                               label: 'Password',
-                              obscureText: true,
+                              obscureText: !_showPassword,
                               controller: _passwordController,
+                              suffixIcon: IconButton(
+                                onPressed: () =>
+                                    setState(() => _showPassword = !_showPassword),
+                                icon: Icon(
+                                  _showPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter your password';
@@ -243,8 +386,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             const SizedBox(height: 12),
                             AppInput(
                               label: 'Confirm Password',
-                              obscureText: true,
+                              obscureText: !_showConfirmPassword,
                               controller: _confirmPasswordController,
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(
+                                    () => _showConfirmPassword = !_showConfirmPassword),
+                                icon: Icon(
+                                  _showConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                              ),
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please confirm your password';
@@ -268,6 +420,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 label: 'Address',
                                 controller: _addressController,
                               ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () =>
+                                      _openPostcodePicker(forRestaurant: false),
+                                  icon: const Icon(Icons.search),
+                                  label: const Text('Find by Postcode'),
+                                ),
+                              ),
                               const SizedBox(height: 12),
                               _AvatarPicker(
                                 picked: _pickedAvatar,
@@ -278,7 +439,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ChipsFilter(
                                 label: 'Allergens',
                                 items: Allergen.standardAllergens
-                                    .map((a) => a.id)
+                                    .map((a) => a.name)
                                     .toList(),
                                 selectedItems: _selectedAllergens,
                                 onSelectionChanged: (s) {
@@ -289,7 +450,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ChipsFilter(
                                 label: 'Dietary Preferences',
                                 items: Allergen.standardDiets
-                                    .map((d) => d.id)
+                                    .map((d) => d.name)
                                     .toList(),
                                 selectedItems: _selectedDiets,
                                 onSelectionChanged: (s) {
@@ -317,6 +478,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   }
                                   return null;
                                 },
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  onPressed: () =>
+                                      _openPostcodePicker(forRestaurant: true),
+                                  icon: const Icon(Icons.search),
+                                  label: const Text('Find by Postcode'),
+                                ),
                               ),
                               const SizedBox(height: 12),
                               AppInput(

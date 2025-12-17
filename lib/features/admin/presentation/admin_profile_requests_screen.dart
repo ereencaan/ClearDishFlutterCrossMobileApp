@@ -4,6 +4,7 @@ import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/profile_change_request.dart';
 import 'package:cleardish/data/repositories/profile_change_request_repo.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final pendingProfileRequestsProvider =
     FutureProvider.autoDispose<List<ProfileChangeRequest>>((ref) async {
@@ -22,7 +23,10 @@ class AdminProfileRequestsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(pendingProfileRequestsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Allergen & Diet Approvals')),
+      appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/admin'),
+        title: const Text('Allergen & Diet Approvals'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: requestsAsync.when(

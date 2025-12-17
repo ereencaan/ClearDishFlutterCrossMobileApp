@@ -6,6 +6,7 @@ class AppInput extends StatelessWidget {
     required this.label,
     this.hint,
     this.obscureText = false,
+    this.suffixIcon,
     this.keyboardType,
     this.controller,
     this.validator,
@@ -17,6 +18,7 @@ class AppInput extends StatelessWidget {
   final String label;
   final String? hint;
   final bool obscureText;
+  final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
@@ -35,6 +37,7 @@ class AppInput extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),

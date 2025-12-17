@@ -40,9 +40,11 @@ final _menuItemsCountProvider = FutureProvider.autoDispose<int>((ref) async {
         .select('id');
     return (rows as List).length;
   } catch (_) {
+    // If blocked by RLS or any error, treat as 0 but keep UI working
     return 0;
   }
 });
+
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
@@ -50,7 +52,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final restaurantsAsync = ref.watch(_restaurantsFutureProvider);
     final usersAsync = ref.watch(_usersFutureProvider);
-    final menuItemsCountAsync = ref.watch(_menuItemsCountProvider);
+    final menuItemsAsync = ref.watch(_menuItemsCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +88,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   isWide: isWide,
                   restaurantsAsync: restaurantsAsync,
                   usersAsync: usersAsync,
-                  menuItemsCountAsync: menuItemsCountAsync,
+                  menuItemsAsync: menuItemsAsync,
                 ),
                 const SizedBox(height: 24),
                 _QuickLinks(),
@@ -113,13 +115,13 @@ class _OverviewGrid extends StatelessWidget {
     required this.isWide,
     required this.restaurantsAsync,
     required this.usersAsync,
-    required this.menuItemsCountAsync,
+    required this.menuItemsAsync,
   });
 
   final bool isWide;
   final AsyncValue<List<Restaurant>> restaurantsAsync;
   final AsyncValue<List<UserProfile>> usersAsync;
-  final AsyncValue<int> menuItemsCountAsync;
+  final AsyncValue<int> menuItemsAsync;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +136,6 @@ class _OverviewGrid extends StatelessWidget {
         ),
         icon: Icons.storefront,
         color: color.primaryContainer,
-        onTap: () => context.go('/admin/restaurants'),
       ),
       _MetricCard(
         title: 'Users',
@@ -145,18 +146,16 @@ class _OverviewGrid extends StatelessWidget {
         ),
         icon: Icons.people,
         color: color.secondaryContainer,
-        onTap: () => context.go('/admin/users'),
       ),
       _MetricCard(
         title: 'Menu Items',
-        value: menuItemsCountAsync.when(
+        value: menuItemsAsync.when(
           data: (c) => c.toString(),
           loading: () => '—',
           error: (_, __) => '—',
         ),
         icon: Icons.restaurant_menu,
         color: color.tertiaryContainer,
-        onTap: () => context.go('/admin/menu-items'),
       ),
     ];
 
@@ -303,18 +302,16 @@ class _MetricCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
-    this.onTap,
   });
 
   final String title;
   final String value;
   final IconData icon;
   final Color color;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final card = Card(
+    return Card(
       color: color.withOpacity(0.35),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -347,12 +344,6 @@ class _MetricCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-    if (onTap == null) return card;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: card,
     );
   }
 }

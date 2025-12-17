@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' show PointerDeviceKind;
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
@@ -7,11 +7,13 @@ import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/restaurant_api.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/controllers/restaurants_controller.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurant_card.dart';
-
+import 'package:cleardish/features/auth/controllers/auth_controller.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final _ownerRestaurantProvider =
     FutureProvider.autoDispose<Result<Restaurant>>((ref) async {
@@ -37,6 +39,30 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
   void initState() {
     super.initState();
     _nearbyFuture = _loadNearby();
+  }
+
+  Future<void> _enableLocation() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm != LocationPermission.denied &&
+          perm != LocationPermission.deniedForever) {
+        // Proactively read position to trigger browser prompt if needed
+        await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+      }
+    } catch (_) {
+      // ignore
+    } finally {
+      if (mounted) {
+        setState(() {
+          _nearbyFuture = _loadNearby();
+        });
+      }
+    }
   }
 
   @override
@@ -93,7 +119,15 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/home'),
         title: const Text('Restaurants'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () => _signOut(context, ref),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -111,21 +145,53 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                 }
                 final data = snapshot.data;
                 if (data == null || data.error != null) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_off, color: Colors.orange),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Enable location to see nearby restaurants on the map.',
+                  final fallback = state.filteredRestaurants.isNotEmpty
+                      ? state.filteredRestaurants
+                      : state.restaurants;
+                  final firstPoint = _firstPoint(fallback);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (firstPoint != null)
+                        RestaurantsMap(
+                          userLat: firstPoint.$1,
+                          userLng: firstPoint.$2,
+                          restaurants: fallback,
+                        )
+                      else
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.location_off,
+                                        color: Colors.orange),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Enable location to see nearby restaurants on the map.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: FilledButton.icon(
+                                    onPressed: _enableLocation,
+                                    icon: const Icon(Icons.my_location),
+                                    label: const Text('Enable location'),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      const SizedBox(height: 12),
+                    ],
                   );
                 }
                 return Column(
@@ -159,7 +225,8 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
                           physics: const BouncingScrollPhysics(),
                           padding: EdgeInsets.zero,
                           itemCount: data.restaurants.length.clamp(0, 10),
-                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             final r = data.restaurants[index];
                             return _NearbyCard(
@@ -243,36 +310,11 @@ class _RestaurantsScreenState extends ConsumerState<RestaurantsScreen> {
         itemCount: state.filteredRestaurants.length,
         itemBuilder: (context, index) {
           final restaurant = state.filteredRestaurants[index];
-          return Stack(
-            children: [
-              RestaurantCard(
-                restaurant: restaurant,
-                onTap: () {
-                  context.go('/home/restaurants/${restaurant.id}');
-                },
-              ),
-              // Active badge chip (lazy loaded)
-              Positioned(
-                right: 24,
-                top: 24,
-                child: FutureBuilder(
-                  future: RestaurantSettingsApi(SupabaseClient.instance)
-                      .getActiveBadges(restaurant.id),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const SizedBox.shrink();
-                    final res = snapshot.data as Result<List<dynamic>>;
-                    if (res is Failure) return const SizedBox.shrink();
-                    final list = (res as Success).data as List;
-                    if (list.isEmpty) return const SizedBox.shrink();
-                    final type = (list.first as dynamic).type as String? ?? 'Badge';
-                    return Chip(
-                      label: Text(type[0].toUpperCase() + type.substring(1)),
-                      avatar: const Icon(Icons.verified, size: 16),
-                    );
-                  },
-                ),
-              ),
-            ],
+          return RestaurantCard(
+            restaurant: restaurant,
+            onTap: () {
+              context.go('/home/restaurants/${restaurant.id}');
+            },
           );
         },
       ),
@@ -289,6 +331,13 @@ class _NearbyPayload {
   final Position? position;
   final List<Restaurant> restaurants;
   final String? error;
+}
+
+(double, double)? _firstPoint(List<Restaurant> restaurants) {
+  for (final r in restaurants) {
+    if (r.lat != null && r.lng != null) return (r.lat!, r.lng!);
+  }
+  return null;
 }
 
 class _NearbyCard extends StatelessWidget {
@@ -354,13 +403,31 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Restaurant'),
+        leading: const AppBackButton(fallbackRoute: '/home'),
+        actions: [
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: () => _signOut(context, ref),
+          ),
+        ],
       ),
       body: resultAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Failed: $e')),
+        error: (e, _) => _OwnerEmptyState(
+            onCreate: () {
+              _showCreateDialog(context, ref);
+            },
+            message: 'Failed: $e'),
         data: (result) {
           if (result.isFailure) {
-            return Center(child: Text(result.errorOrNull ?? 'Failed'));
+            final msg = result.errorOrNull ?? 'No restaurant assigned';
+            return _OwnerEmptyState(
+              message: msg,
+              onCreate: () {
+                _showCreateDialog(context, ref);
+              },
+            );
           }
           final restaurant = result.dataOrNull!;
           return SingleChildScrollView(
@@ -419,24 +486,7 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (restaurant.lat != null && restaurant.lng != null)
-                  RestaurantsMap(
-                    userLat: restaurant.lat!,
-                    userLng: restaurant.lng!,
-                    restaurants: [restaurant],
-                    height: 240,
-                  )
-                else
-                  Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Text('Add coordinates to preview map'),
-                    ),
-                  ),
+                _OwnerMapAutoLocate(restaurant: restaurant),
               ],
             ),
           );
@@ -444,10 +494,282 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
       ),
     );
   }
+
+  void _showCreateDialog(BuildContext context, WidgetRef ref) {
+    final nameCtrl = TextEditingController();
+    final addrCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool saving = false;
+        return StatefulBuilder(builder: (context, setSt) {
+          Future<void> _save() async {
+            if (saving) return;
+            setSt(() => saving = true);
+            final api = RestaurantSettingsApi(SupabaseClient.instance);
+            final res = await api.createRestaurantWithOwner(
+              name: nameCtrl.text.trim().isEmpty
+                  ? 'My Restaurant'
+                  : nameCtrl.text.trim(),
+              address: addrCtrl.text.trim().isEmpty
+                  ? 'Address not set'
+                  : addrCtrl.text.trim(),
+              phone:
+                  phoneCtrl.text.trim().isEmpty ? null : phoneCtrl.text.trim(),
+            );
+            setSt(() => saving = false);
+            if (!context.mounted) return;
+            if (res.isFailure) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(res.errorOrNull ?? 'Failed to create'),
+                  backgroundColor: Colors.red));
+              return;
+            }
+            Navigator.of(context).pop();
+            ref.invalidate(_ownerRestaurantProvider);
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Restaurant created')));
+          }
+
+          return AlertDialog(
+            title: const Text('Create your restaurant'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: addrCtrl,
+                  decoration: const InputDecoration(labelText: 'Address'),
+                ),
+                TextField(
+                  controller: phoneCtrl,
+                  decoration:
+                      const InputDecoration(labelText: 'Phone (optional)'),
+                  keyboardType: TextInputType.phone,
+                ),
+              ],
+            ),
+            actions: [
+              Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed:
+                          saving ? null : () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: saving ? null : _save,
+                      child: saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Create'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
 }
 
-// Ensures horizontal lists can be dragged with touch, mouse and trackpad
-class _DragScrollBehavior extends ScrollBehavior {
+class _OwnerMapAutoLocate extends StatefulWidget {
+  const _OwnerMapAutoLocate({required this.restaurant});
+  final Restaurant restaurant;
+  @override
+  State<_OwnerMapAutoLocate> createState() => _OwnerMapAutoLocateState();
+}
+
+class _OwnerMapAutoLocateState extends State<_OwnerMapAutoLocate> {
+  double? _lat;
+  double? _lng;
+  bool _loading = false;
+  bool _attempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeResolveFromPostcode();
+  }
+
+  bool _invalidCoords(Restaurant r) {
+    if (r.lat == null || r.lng == null) return true;
+    final lat = r.lat!;
+    final lng = r.lng!;
+    return lat < 49.0 || lat > 61.0 || lng < -9.0 || lng > 3.0;
+  }
+
+  String? _extractUkPostcode(String text) {
+    final re = RegExp(r'([A-Z]{1,2}\d{1,2}[A-Z]?)\s?(\d[A-Z]{2})',
+        caseSensitive: false);
+    final m = re.firstMatch(text.toUpperCase());
+    if (m != null) {
+      return '${m.group(1)} ${m.group(2)}';
+    }
+    return null;
+  }
+
+  Future<void> _maybeResolveFromPostcode() async {
+    final r = widget.restaurant;
+    if (!_invalidCoords(r)) {
+      setState(() {
+        _lat = r.lat;
+        _lng = r.lng;
+        _attempted = true;
+      });
+      return;
+    }
+    final addr = r.address;
+    if (addr == null || addr.isEmpty) {
+      setState(() {
+        _attempted = true;
+      });
+      return;
+    }
+    final pc = _extractUkPostcode(addr);
+    if (pc == null) {
+      setState(() {
+        _attempted = true;
+      });
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final detail = await PostcodeApi().lookup(pc);
+      final lat = detail.latitude;
+      final lng = detail.longitude;
+      setState(() {
+        _lat = lat;
+        _lng = lng;
+        _attempted = true;
+      });
+      // Persist so next load uses DB coordinates too.
+      final api = RestaurantSettingsApi(SupabaseClient.instance);
+      await api.saveAddress(
+        restaurantId: r.id,
+        address: r.address ?? detail.formattedAddress(),
+        phone: r.phone,
+        lat: lat,
+        lng: lng,
+      );
+    } catch (_) {
+      setState(() {
+        _attempted = true;
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading && !_attempted) {
+      return Container(
+        height: 160,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if ((_lat ?? widget.restaurant.lat) != null &&
+        (_lng ?? widget.restaurant.lng) != null) {
+      final lat = _lat ?? widget.restaurant.lat!;
+      final lng = _lng ?? widget.restaurant.lng!;
+      final r = Restaurant(
+        id: widget.restaurant.id,
+        name: widget.restaurant.name,
+        address: widget.restaurant.address,
+        phone: widget.restaurant.phone,
+        lat: lat,
+        lng: lng,
+        visible: widget.restaurant.visible,
+        createdAt: widget.restaurant.createdAt,
+        distanceMeters: widget.restaurant.distanceMeters,
+      );
+      return RestaurantsMap(
+        userLat: lat,
+        userLng: lng,
+        restaurants: [r],
+        height: 240,
+      );
+    }
+    return Container(
+      height: 160,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Center(
+        child: Text('Add a UK postcode in address to auto-pin on the map'),
+      ),
+    );
+  }
+}
+
+Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  final result = await ref.read(authControllerProvider.notifier).signOut();
+  if (!context.mounted) return;
+
+  if (result.isFailure) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.errorOrNull ?? 'Failed to sign out'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } else {
+    context.go('/welcome');
+  }
+}
+
+class _OwnerEmptyState extends StatelessWidget {
+  const _OwnerEmptyState({required this.onCreate, this.message});
+  final VoidCallback onCreate;
+  final String? message;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.storefront, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              message ?? 'No restaurant assigned to this account',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add_business),
+              label: const Text('Create my restaurant'),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DragScrollBehavior extends MaterialScrollBehavior {
   const _DragScrollBehavior();
   @override
   Set<PointerDeviceKind> get dragDevices => {

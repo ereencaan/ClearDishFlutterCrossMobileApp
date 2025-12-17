@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/menu_api.dart';
-import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/data/models/menu_category.dart';
 import 'package:cleardish/data/models/menu_item.dart';
@@ -243,13 +242,11 @@ class RestaurantSetupScreen extends ConsumerStatefulWidget {
 
 class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
   final _addressCtrl = TextEditingController();
-  final _postcodeCtrl = TextEditingController();
   final _categoryNameCtrl = TextEditingController();
   final _itemNameCtrl = TextEditingController();
   final _itemPriceCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
-  final _postcodeApi = PostcodeApi();
 
   @override
   void dispose() {
@@ -291,102 +288,38 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _StepHeader(
-                      title: 'Step 1 — Address & Location',
-                      done: s.hasLocation,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _postcodeCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'UK Postcode',
-                              hintText: 'e.g. E1 6AN',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            final res =
-                                await _postcodeApi.lookup(_postcodeCtrl.text);
-                            if (!mounted) return;
-                            if (res is Success) {
-                              final data = (res as Success<PostcodeLookup>).data;
-                              _addressCtrl.text = data.suggestedAddress;
-                              _latCtrl.text = data.lat.toStringAsFixed(6);
-                              _lngCtrl.text = data.lng.toStringAsFixed(6);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Found ${data.postcode} → ${data.suggestedAddress}'),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text((res as Failure).message),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text('Find address'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _addressCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Restaurant Address',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _latCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Latitude',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _lngCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Longitude',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
+            _StepHeader(
+              title: 'Step 1 — Address & Location',
+              done: s.hasLocation,
+            ),
+            TextField(
+              controller: _addressCtrl,
+              decoration:
+                  const InputDecoration(labelText: 'Restaurant Address'),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _latCtrl,
+                    decoration: const InputDecoration(labelText: 'Latitude'),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _lngCtrl,
+                    decoration: const InputDecoration(labelText: 'Longitude'),
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
               onPressed: s.restaurantId == null
                   ? null
                   : () async {
@@ -408,43 +341,32 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                         const SnackBar(content: Text('Location saved')),
                       );
                     },
-                      child: const Text('Save Location'),
-                    ),
-                  ],
-                ),
-              ),
+              child: const Text('Save Location'),
             ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _StepHeader(
-                      title: 'Step 2 — Create Your Menu',
-                      done: s.hasMenu,
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () => _showCategoryDialog(context, c),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Add Category'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              _showItemDialog(context, c, s.categories, null),
-                          icon: const Icon(Icons.fastfood),
-                          label: const Text('Add Item'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (s.categories.isNotEmpty) const Text('Categories'),
+            const Divider(height: 32),
+            _StepHeader(
+              title: 'Step 2 — Create Your Menu',
+              done: s.hasMenu,
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showCategoryDialog(context, c),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Category'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      _showItemDialog(context, c, s.categories, null),
+                  icon: const Icon(Icons.fastfood),
+                  label: const Text('Add Item'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (s.categories.isNotEmpty) const Text('Categories'),
             for (final cat in s.categories)
               ListTile(
                 dense: true,
@@ -466,8 +388,8 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   ],
                 ),
               ),
-                    if (s.items.isNotEmpty) const SizedBox(height: 8),
-                    if (s.items.isNotEmpty) const Text('Items'),
+            if (s.items.isNotEmpty) const SizedBox(height: 8),
+            if (s.items.isNotEmpty) const Text('Items'),
             for (final it in s.items)
               ListTile(
                 dense: true,
@@ -493,10 +415,6 @@ class _RestaurantSetupScreenState extends ConsumerState<RestaurantSetupScreen> {
                   ],
                 ),
               ),
-                  ],
-                ),
-              ),
-            ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: canFinish

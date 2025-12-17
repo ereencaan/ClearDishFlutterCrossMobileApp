@@ -85,12 +85,16 @@ class AuthController extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required AuthRole role,
+    Map<String, dynamic>? metadataExtra,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     final result = await _authRepo.register(
       email: email,
       password: password,
-      metadata: {'role': role.name},
+      metadata: {
+        'role': role.name,
+        ...?metadataExtra,
+      },
     );
     state = state.copyWith(
       isLoading: false,

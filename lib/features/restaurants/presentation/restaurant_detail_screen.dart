@@ -7,6 +7,7 @@ import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
 import 'package:cleardish/widgets/app_back_button.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cleardish/data/sources/postcode_api.dart';
 
 /// Restaurant detail screen
 ///
@@ -29,6 +30,9 @@ class _RestaurantDetailScreenState
   Restaurant? _restaurant;
   bool _isLoading = true;
   String? _error;
+  double? _latOverride;
+  double? _lngOverride;
+  String? _addressOverride;
 
   @override
   void initState() {
@@ -44,6 +48,30 @@ class _RestaurantDetailScreenState
 
     final repo = RestaurantRepo();
     final result = await repo.getRestaurant(widget.restaurantId);
+
+    if (result.isSuccess) {
+      final r = result.dataOrNull!;
+      // If coordinates are missing or outside UK bounds, try postcode lookup.
+      final invalidCoords = (r.lat == null ||
+          r.lng == null ||
+          r.lat! < 49.0 ||
+          r.lat! > 61.0 ||
+          r.lng! < -9.0 ||
+          r.lng! > 3.0);
+      if (invalidCoords && (r.address != null && r.address!.isNotEmpty)) {
+        final pc = _extractUkPostcode(r.address!);
+        if (pc != null) {
+          try {
+            final detail = await PostcodeApi().lookup(pc);
+            _latOverride = detail.latitude;
+            _lngOverride = detail.longitude;
+            _addressOverride = detail.formattedAddress();
+          } catch (_) {
+            // ignore lookup errors; fall back to original data
+          }
+        }
+      }
+    }
 
     setState(() {
       _isLoading = false;
@@ -117,14 +145,27 @@ class _RestaurantDetailScreenState
                 ),
           ),
           const SizedBox(height: 12),
-          if (_restaurant!.lat != null && _restaurant!.lng != null)
+          if ((_latOverride ?? _restaurant!.lat) != null &&
+              (_lngOverride ?? _restaurant!.lng) != null)
             RestaurantsMap(
-              userLat: _restaurant!.lat!, // center near restaurant if available
-              userLng: _restaurant!.lng!,
-              restaurants: [_restaurant!],
+              userLat: (_latOverride ?? _restaurant!.lat!),
+              userLng: (_lngOverride ?? _restaurant!.lng!),
+              restaurants: [
+                Restaurant(
+                  id: _restaurant!.id,
+                  name: _restaurant!.name,
+                  address: _addressOverride ?? _restaurant!.address,
+                  phone: _restaurant!.phone,
+                  lat: _latOverride ?? _restaurant!.lat,
+                  lng: _lngOverride ?? _restaurant!.lng,
+                  visible: _restaurant!.visible,
+                  createdAt: _restaurant!.createdAt,
+                  distanceMeters: _restaurant!.distanceMeters,
+                )
+              ],
               height: 220,
             ),
-          if (_restaurant!.address != null) ...[
+          if ((_addressOverride ?? _restaurant!.address) != null) ...[
             const SizedBox(height: 16),
             Row(
               children: [
@@ -132,7 +173,7 @@ class _RestaurantDetailScreenState
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _restaurant!.address!,
+                    (_addressOverride ?? _restaurant!.address!),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
@@ -141,8 +182,8 @@ class _RestaurantDetailScreenState
             const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: () async {
-                final lat = _restaurant!.lat;
-                final lng = _restaurant!.lng;
+                final lat = _latOverride ?? _restaurant!.lat;
+                final lng = _lngOverride ?? _restaurant!.lng;
                 if (lat != null && lng != null) {
                   final url = Uri.parse(
                     'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
@@ -157,5 +198,17 @@ class _RestaurantDetailScreenState
         ],
       ),
     );
+  }
+
+  String? _extractUkPostcode(String text) {
+    final re = RegExp(
+      r'([A-Z]{1,2}\d{1,2}[A-Z]?)\s?(\d[A-Z]{2})',
+      caseSensitive: false,
+    );
+    final m = re.firstMatch(text.toUpperCase());
+    if (m != null) {
+      return '${m.group(1)} ${m.group(2)}';
+    }
+    return null;
   }
 }

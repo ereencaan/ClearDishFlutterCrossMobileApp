@@ -72,14 +72,14 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: _blob(colorScheme.secondary.withOpacity(0.12), 220),
           ),
           // Content
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 980),
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  physics: const BouncingScrollPhysics(),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Align(
@@ -293,7 +293,9 @@ class _AnimatedRoleCardState extends State<_AnimatedRoleCard>
     _offset = Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(
       CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),
     );
-    Future.delayed(Duration(milliseconds: widget.delayMs), () => _c.forward());
+    Future.delayed(Duration(milliseconds: widget.delayMs), () {
+      if (mounted) _c.forward();
+    });
   }
 
   @override

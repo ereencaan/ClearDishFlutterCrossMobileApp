@@ -131,7 +131,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Admin profile: simple overview and actions, no onboarding fields
     if (_isAdmin) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Admin Profile')),
+        appBar: AppBar(
+          leading: const AppBackButton(fallbackRoute: '/admin'),
+          title: const Text('Admin Profile'),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -184,6 +187,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/home'),
         title: const Text('Profile'),
       ),
       body: SafeArea(
@@ -255,12 +259,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               AppButton(
-                label: 'My Badges & Rewards',
-                isOutlined: true,
-                onPressed: () => context.go('/home/my-badges'),
-              ),
-              const SizedBox(height: 16),
-              AppButton(
                 label: 'Sign Out',
                 isOutlined: true,
                 onPressed: _handleLogout,
@@ -279,6 +277,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }) async {
     if (_hasSameValues(selected, current)) {
       _showSnack('No changes detected.');
+      return;
+    }
+
+    // First-time setup: if there is no current value, write directly without approval
+    if (current.isEmpty) {
+      final direct = await ref
+          .read(profileControllerProvider.notifier)
+          .updateAllergens(userId, selected);
+      if (!mounted) return;
+      if (direct.isFailure) {
+        _showSnack(
+          direct.errorOrNull ?? 'Failed to save allergens',
+          isError: true,
+        );
+      } else {
+        _showSnack('Allergens saved.');
+      }
       return;
     }
 
@@ -303,6 +318,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }) async {
     if (_hasSameValues(selected, current)) {
       _showSnack('No changes detected.');
+      return;
+    }
+    // First-time setup: save directly if no current value
+    if (current.isEmpty) {
+      final direct = await ref
+          .read(profileControllerProvider.notifier)
+          .updateDiets(userId, selected);
+      if (!mounted) return;
+      if (direct.isFailure) {
+        _showSnack(
+          direct.errorOrNull ?? 'Failed to save dietary preferences',
+          isError: true,
+        );
+      } else {
+        _showSnack('Dietary preferences saved.');
+      }
       return;
     }
     final result = await ref
@@ -480,6 +511,21 @@ class _RestaurantOwnerProfilePanelState
     await ref.read(restaurantOwnerDataProvider.future);
   }
 
+  Future<void> _signOut() async {
+    final result = await ref.read(authControllerProvider.notifier).signOut();
+    if (!mounted) return;
+    if (result.isFailure) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.errorOrNull ?? 'Failed to sign out'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else {
+      context.go('/welcome');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dataAsync = ref.watch(restaurantOwnerDataProvider);
@@ -491,19 +537,8 @@ class _RestaurantOwnerProfilePanelState
           IconButton(
             tooltip: 'Sign out',
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final res =
-                  await ref.read(authControllerProvider.notifier).signOut();
-              if (!mounted) return;
-              if (res.isFailure) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text(res.errorOrNull ?? 'Failed to sign out')));
-              } else {
-                context.go('/welcome');
-              }
-            },
-          )
+            onPressed: _signOut,
+          ),
         ],
       ),
       body: dataAsync.when(
@@ -727,18 +762,54 @@ class _RestaurantOwnerProfilePanelState
               runSpacing: 12,
               children: [
                 FilledButton(
-                  onPressed: () =>
-                      context.push('/home/restaurant/badges/new', extra: {'type': 'weekly'}),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final start = DateTime(now.year, now.month, now.day)
+                        .subtract(Duration(days: now.weekday - 1));
+                    final end = start.add(const Duration(days: 6));
+                    final result = await _settingsApi.createBadge(
+                      restaurantId: restaurantId,
+                      type: 'weekly',
+                      periodStart: start,
+                      periodEnd: end,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          result.isFailure
+                              ? (result.errorOrNull ?? 'Failed to add badge')
+                              : 'Weekly badge added',
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text('Add Weekly Badge'),
                 ),
                 FilledButton(
-                  onPressed: () =>
-                      context.push('/home/restaurant/badges/new', extra: {'type': 'monthly'}),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final start = DateTime(now.year, now.month, 1);
+                    final end = DateTime(now.year, now.month + 1, 1)
+                        .subtract(const Duration(days: 1));
+                    final result = await _settingsApi.createBadge(
+                      restaurantId: restaurantId,
+                      type: 'monthly',
+                      periodStart: start,
+                      periodEnd: end,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          result.isFailure
+                              ? (result.errorOrNull ?? 'Failed to add badge')
+                              : 'Monthly badge added',
+                        ),
+                      ),
+                    );
+                  },
                   child: const Text('Add Monthly Badge'),
-                ),
-                OutlinedButton(
-                  onPressed: () => context.go('/home/restaurant/badges/rules'),
-                  child: const Text('Manage Rules'),
                 ),
               ],
             ),

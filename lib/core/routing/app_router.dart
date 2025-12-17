@@ -19,12 +19,9 @@ import 'package:cleardish/features/admin/presentation/admin_activity_screen.dart
 import 'package:cleardish/features/common/presentation/loading_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurants_screen.dart';
 import 'package:cleardish/features/admin/presentation/admin_restaurant_form_screen.dart';
-import 'package:cleardish/features/admin/presentation/admin_menu_items_screen.dart';
-import 'package:cleardish/features/restaurants/presentation/restaurant_badge_form_screen.dart';
-import 'package:cleardish/features/restaurants/presentation/owner_badge_rules_screen.dart';
-import 'package:cleardish/features/profile/presentation/my_badges_screen.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurant_setup_screen.dart';
+import 'package:cleardish/features/onboarding/presentation/onboarding_screen.dart';
 
 /// Application router configuration
 ///
@@ -71,6 +68,11 @@ final class AppRouter {
         builder: (context, state) => const LoadingScreen(),
       ),
       GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
         path: '/admin',
         name: 'admin-dashboard',
         builder: (context, state) => const AdminDashboardScreen(),
@@ -94,11 +96,6 @@ final class AppRouter {
         path: '/admin/restaurants',
         name: 'admin-restaurants',
         builder: (context, state) => const AdminRestaurantsScreen(),
-      ),
-      GoRoute(
-        path: '/admin/menu-items',
-        name: 'admin-menu-items',
-        builder: (context, state) => const AdminMenuItemsScreen(),
       ),
       GoRoute(
         path: '/admin/restaurants/new',
@@ -161,29 +158,6 @@ final class AppRouter {
             path: '/home/restaurant/setup',
             name: 'restaurant-setup',
             builder: (context, state) => const RestaurantSetupScreen(),
-          ),
-          GoRoute(
-            path: '/home/restaurant/badges/new',
-            name: 'restaurant-badge-new',
-            builder: (context, state) {
-              // Support navigation via pushNamed with arguments map
-              final arg = state.extra;
-              String? type;
-              if (arg is Map && arg['type'] is String) {
-                type = arg['type'] as String;
-              }
-              return RestaurantBadgeFormScreen(initialType: type);
-            },
-          ),
-          GoRoute(
-            path: '/home/restaurant/badges/rules',
-            name: 'restaurant-badge-rules',
-            builder: (context, state) => const OwnerBadgeRulesScreen(),
-          ),
-          GoRoute(
-            path: '/home/my-badges',
-            name: 'my-badges',
-            builder: (context, state) => const MyBadgesScreen(),
           ),
           GoRoute(
             path: '/home/menu/:restaurantId',

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
-import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_back_button.dart';
 
@@ -76,13 +74,13 @@ class _SettingsController extends StateNotifier<_SettingsState> {
     }
   }
 
-  Future<bool> saveAddress({
+  Future<void> saveAddress({
     required String address,
     String? phone,
     double? lat,
     double? lng,
   }) async {
-    if (state.restaurantId == null) return false;
+    if (state.restaurantId == null) return;
     state = state.copyWith(isLoading: true, error: null);
     final result = await _api.saveAddress(
       restaurantId: state.restaurantId!,
@@ -100,11 +98,9 @@ class _SettingsController extends StateNotifier<_SettingsState> {
         lat: r.lat,
         lng: r.lng,
       );
-      return true;
     } else {
       state =
           state.copyWith(isLoading: false, error: (result as Failure).message);
-      return false;
     }
   }
 
@@ -140,8 +136,6 @@ class _SettingsController extends StateNotifier<_SettingsState> {
     required String title,
     String? description,
     required double percentOff,
-    DateTime? startsAt,
-    DateTime? endsAt,
   }) async {
     if (state.restaurantId == null) return;
     await _api.createPromotion(
@@ -149,8 +143,6 @@ class _SettingsController extends StateNotifier<_SettingsState> {
       title: title,
       description: description,
       percentOff: percentOff,
-      startsAt: startsAt,
-      endsAt: endsAt,
     );
   }
 }
@@ -167,15 +159,11 @@ class _RestaurantSettingsScreenState
     extends ConsumerState<RestaurantSettingsScreen> {
   final _addressCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _postcodeCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lngCtrl = TextEditingController();
   final _promoTitleCtrl = TextEditingController();
   final _promoDescCtrl = TextEditingController();
   final _promoPercentCtrl = TextEditingController(text: '10');
-  final _postcodeApi = PostcodeApi();
-  DateTime _promoStart = DateTime.now();
-  DateTime _promoEnd = DateTime.now().add(const Duration(days: 7));
 
   @override
   void dispose() {
@@ -215,307 +203,224 @@ class _RestaurantSettingsScreenState
           fallbackRoute: '/home/restaurants',
         ),
       ),
-      body: SingleChildScrollView(
+      body: state.restaurantId == null && state.error != null
+          ? _NoRestaurantPanel(onCreate: () async {
+              // quick create dialog
+              final nameCtrl = TextEditingController();
+              final addrCtrl = TextEditingController();
+              final phoneCtrl = TextEditingController();
+              await showDialog(
+                context: context,
+                builder: (context) {
+                  bool saving = false;
+                  return StatefulBuilder(builder: (context, setSt) {
+                    Future<void> _save() async {
+                      if (saving) return;
+                      setSt(() => saving = true);
+                      final api = RestaurantSettingsApi(SupabaseClient.instance);
+                      final res = await api.createRestaurantWithOwner(
+                        name: nameCtrl.text.trim().isEmpty
+                            ? 'My Restaurant'
+                            : nameCtrl.text.trim(),
+                        address: addrCtrl.text.trim().isEmpty
+                            ? 'Address not set'
+                            : addrCtrl.text.trim(),
+                        phone: phoneCtrl.text.trim().isEmpty
+                            ? null
+                            : phoneCtrl.text.trim(),
+                      );
+                      setSt(() => saving = false);
+                      if (!context.mounted) return;
+                      if (res.isFailure) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                res.errorOrNull ?? 'Failed to create restaurant'),
+                            backgroundColor: Colors.red));
+                        return;
+                      }
+                      Navigator.of(context).pop();
+                      // reload
+                      controller._load();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Restaurant created')));
+                    }
+
+                    return AlertDialog(
+                      title: const Text('Create your restaurant'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: nameCtrl,
+                            decoration:
+                                const InputDecoration(labelText: 'Name'),
+                          ),
+                          TextField(
+                            controller: addrCtrl,
+                            decoration:
+                                const InputDecoration(labelText: 'Address'),
+                          ),
+                          TextField(
+                            controller: phoneCtrl,
+                            decoration: const InputDecoration(
+                                labelText: 'Phone (optional)'),
+                            keyboardType: TextInputType.phone,
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        FilledButton(
+                          onPressed: saving ? null : _save,
+                          child: saving
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : const Text('Create'),
+                        ),
+                      ],
+                    );
+                  });
+                },
+              );
+            })
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Address & Location',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _postcodeCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'UK Postcode',
-                              hintText: 'e.g. E1 6AN',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            final res =
-                                await _postcodeApi.lookup(_postcodeCtrl.text);
-                            if (!mounted) return;
-                            if (res is Success) {
-                              final data = (res as Success<PostcodeLookup>).data;
-                              _addressCtrl.text = data.suggestedAddress;
-                              _latCtrl.text = data.lat.toStringAsFixed(6);
-                              _lngCtrl.text = data.lng.toStringAsFixed(6);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Found ${data.postcode} → ${data.suggestedAddress}'),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text((res as Failure).message),
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text('Find address'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _addressCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Address',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _phoneCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone (optional)',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _latCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Lat',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true, signed: false),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _lngCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Lng',
-                              filled: true,
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true, signed: true),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: state.restaurantId == null
-                          ? null
-                          : () async {
-                              final lat =
-                                  double.tryParse(_latCtrl.text.trim());
-                              final lng =
-                                  double.tryParse(_lngCtrl.text.trim());
-                              final ok = await controller.saveAddress(
-                                address: _addressCtrl.text.trim(),
-                                phone: _phoneCtrl.text.trim().isEmpty
-                                    ? null
-                                    : _phoneCtrl.text.trim(),
-                                lat: lat,
-                                lng: lng,
-                              );
-                              if (!mounted) return;
-                              if (ok) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Saved')),
-                                );
-                              } else {
-                                final err =
-                                    ref.read(_settingsProvider).error ??
-                                        'Failed to save';
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(err)),
-                                );
-                              }
-                            },
-                      child: const Text('Save Address & Location'),
-                    ),
-                  ],
-                ),
-              ),
+            const Text('Address & Location',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+                controller: _addressCtrl,
+                decoration: const InputDecoration(labelText: 'Address')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _phoneCtrl,
+              decoration: const InputDecoration(labelText: 'Phone (optional)'),
+              keyboardType: TextInputType.phone,
             ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Badges',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            if (!mounted) return;
-                            context.push('/home/restaurant/badges/new',
-                                extra: {'type': 'weekly'});
-                          },
-                          child: const Text('Add Weekly Badge'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (!mounted) return;
-                            context.push('/home/restaurant/badges/new',
-                                extra: {'type': 'monthly'});
-                          },
-                          child: const Text('Add Monthly Badge'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            Row(
+              children: [
+                Expanded(
+                    child: TextField(
+                        controller: _latCtrl,
+                        decoration: const InputDecoration(labelText: 'Lat'))),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: TextField(
+                        controller: _lngCtrl,
+                        decoration: const InputDecoration(labelText: 'Lng'))),
+              ],
             ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Promotions',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _promoTitleCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _promoDescCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _promoStart,
-                                firstDate: DateTime.now()
-                                    .subtract(const Duration(days: 1)),
-                                lastDate: DateTime.now()
-                                    .add(const Duration(days: 365)),
-                              );
-                              if (picked != null) {
-                                setState(() => _promoStart = picked);
-                                if (_promoEnd.isBefore(_promoStart)) {
-                                  setState(() => _promoEnd =
-                                      _promoStart.add(const Duration(days: 7)));
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.calendar_today),
-                            label: Text(
-                              'Starts: ${_promoStart.toLocal().toString().split(' ').first}',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _promoEnd,
-                                firstDate: _promoStart,
-                                lastDate: DateTime.now()
-                                    .add(const Duration(days: 730)),
-                              );
-                              if (picked != null) {
-                                setState(() => _promoEnd = picked);
-                              }
-                            },
-                            icon: const Icon(Icons.calendar_month),
-                            label: Text(
-                              'Ends: ${_promoEnd.toLocal().toString().split(' ').first}',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _promoPercentCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Percent off (0-100)',
-                        filled: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () async {
-                        final percent =
-                            double.tryParse(_promoPercentCtrl.text.trim()) ??
-                                0;
-                        await controller.createPromotion(
-                          title: _promoTitleCtrl.text.trim(),
-                          description: _promoDescCtrl.text.trim().isEmpty
-                              ? null
-                              : _promoDescCtrl.text.trim(),
-                          percentOff: percent,
-                          startsAt: _promoStart,
-                          endsAt: _promoEnd,
-                        );
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Promotion created')),
-                        );
-                      },
-                      child: const Text('Create Promotion'),
-                    ),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: state.restaurantId == null
+                  ? null
+                  : () async {
+                      final lat = double.tryParse(_latCtrl.text.trim());
+                      final lng = double.tryParse(_lngCtrl.text.trim());
+                      await controller.saveAddress(
+                        address: _addressCtrl.text.trim(),
+                        phone: _phoneCtrl.text.trim().isEmpty
+                            ? null
+                            : _phoneCtrl.text.trim(),
+                        lat: lat,
+                        lng: lng,
+                      );
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(const SnackBar(content: Text('Saved')));
+                    },
+              child: const Text('Save Address & Location'),
             ),
-            const SizedBox(height: 24),
+            const Divider(height: 32),
+            const Text('Badges',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              children: [
+                ElevatedButton(
+                    onPressed: controller.createWeeklyBadge,
+                    child: const Text('Add Weekly Badge')),
+                ElevatedButton(
+                    onPressed: controller.createMonthlyBadge,
+                    child: const Text('Add Monthly Badge')),
+              ],
+            ),
+            const Divider(height: 32),
+            const Text('Promotions',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+                controller: _promoTitleCtrl,
+                decoration: const InputDecoration(labelText: 'Title')),
+            TextField(
+                controller: _promoDescCtrl,
+                decoration: const InputDecoration(labelText: 'Description')),
+            TextField(
+                controller: _promoPercentCtrl,
+                decoration:
+                    const InputDecoration(labelText: 'Percent off (0-100)')),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                final percent =
+                    double.tryParse(_promoPercentCtrl.text.trim()) ?? 0;
+                await controller.createPromotion(
+                  title: _promoTitleCtrl.text.trim(),
+                  description: _promoDescCtrl.text.trim().isEmpty
+                      ? null
+                      : _promoDescCtrl.text.trim(),
+                  percentOff: percent,
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Promotion created')));
+              },
+              child: const Text('Create Promotion'),
+            ),
+            const SizedBox(height: 32),
             if (state.error != null)
               Text(state.error!, style: const TextStyle(color: Colors.red)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoRestaurantPanel extends StatelessWidget {
+  const _NoRestaurantPanel({required this.onCreate});
+  final VoidCallback onCreate;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.storefront, size: 56),
+            const SizedBox(height: 12),
+            const Text(
+              'No restaurant assigned to this account',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add_business),
+              label: const Text('Create my restaurant'),
+            )
           ],
         ),
       ),
