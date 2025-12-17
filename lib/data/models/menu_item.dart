@@ -69,8 +69,11 @@ class MenuItem extends Equatable {
 
   /// Returns true if this item satisfies ALL of the user's dietary preferences
   bool satisfiesDiets(List<String> userDiets) {
+    // No diet selected by user: everything is acceptable.
     if (userDiets.isEmpty) return true;
-    if (diets.isEmpty) return false;
+    // Item has no diet tags: treat as acceptable rather than hiding it.
+    if (diets.isEmpty) return true;
+    // Require the item to include all user-requested diets.
     for (final d in userDiets) {
       if (!diets.contains(d)) return false;
     }

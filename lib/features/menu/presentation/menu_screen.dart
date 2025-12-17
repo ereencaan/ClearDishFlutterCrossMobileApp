@@ -87,16 +87,26 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       body: Column(
         children: [
           if (menuState.safeOnly && menuState.hiddenCount > 0)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: Colors.orange[100],
-              child: Text(
-                '${menuState.hiddenCount} item(s) hidden (allergen/diet)',
-                style: const TextStyle(fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            Builder(builder: (context) {
+              final colors = Theme.of(context).colorScheme;
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colors.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${menuState.hiddenCount} item(s) hidden (allergen/diet)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colors.onSecondaryContainer,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }),
           Expanded(
             child: _buildBody(menuState, filteredItems),
           ),
