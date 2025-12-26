@@ -15,6 +15,7 @@ import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/data/sources/postcode_api.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:cleardish/widgets/app_back_button.dart';
 
 /// Register screen
 ///
@@ -275,6 +276,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/welcome'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           // soft gradient background (mirrors welcome)

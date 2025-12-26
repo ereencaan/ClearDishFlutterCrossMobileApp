@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final _menuItemsProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
@@ -28,6 +29,7 @@ class _AdminMenuItemsScreenState
     final asyncItems = ref.watch(_menuItemsProvider);
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/admin'),
         title: const Text('Menu Items'),
       ),
       body: Column(

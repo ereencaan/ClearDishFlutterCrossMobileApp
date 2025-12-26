@@ -82,7 +82,8 @@ class _RestaurantSheet extends StatelessWidget {
   Future<void> _openDirections() async {
     if (restaurant.lat == null || restaurant.lng == null) return;
     final url = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lng}');
+      'https://www.google.com/maps/dir/?api=1&destination=${restaurant.lat},${restaurant.lng}',
+    );
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
 

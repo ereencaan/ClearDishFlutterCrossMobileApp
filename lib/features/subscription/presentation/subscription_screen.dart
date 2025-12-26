@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cleardish/widgets/app_button.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 /// Subscription screen (placeholder)
 ///
@@ -11,6 +12,7 @@ class SubscriptionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/home'),
         title: const Text('Subscription'),
       ),
       body: Center(

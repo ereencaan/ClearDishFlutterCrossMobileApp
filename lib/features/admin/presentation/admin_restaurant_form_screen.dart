@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/features/restaurants/controllers/restaurants_controller.dart';
 import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 class AdminRestaurantFormScreen extends ConsumerStatefulWidget {
   const AdminRestaurantFormScreen({super.key, this.restaurant});
@@ -86,8 +87,10 @@ class _AdminRestaurantFormScreenState
   Widget build(BuildContext context) {
     final isEdit = widget.restaurant != null;
     return Scaffold(
-      appBar:
-          AppBar(title: Text(isEdit ? 'Edit Restaurant' : 'Add Restaurant')),
+      appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/admin/restaurants'),
+        title: Text(isEdit ? 'Edit Restaurant' : 'Add Restaurant'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -8,6 +8,7 @@ import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/models/allergen.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/chips_filter.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 /// Onboarding screen
 ///
@@ -102,6 +103,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/home'),
         title: const Text('Set Up Your Profile'),
       ),
       body: SafeArea(

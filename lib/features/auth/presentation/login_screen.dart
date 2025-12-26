@@ -7,6 +7,7 @@ import 'package:cleardish/core/utils/result.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/app_input.dart';
 import 'package:cleardish/widgets/brand_logo.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 /// Login screen
 ///
@@ -66,6 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/welcome'),
         title: const BrandLogo(size: 32),
         centerTitle: true,
       ),

@@ -6,6 +6,7 @@ import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/models/user_profile.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/widgets/app_back_button.dart';
 
 final _restaurantsFutureProvider =
     FutureProvider.autoDispose<List<Restaurant>>((ref) async {
@@ -56,6 +57,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/welcome'),
         title: const Text('Admin Dashboard'),
         actions: [
           IconButton(
