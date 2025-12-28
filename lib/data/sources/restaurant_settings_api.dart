@@ -3,6 +3,22 @@ import 'package:cleardish/data/models/promotion.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
 
+/// Checks if the current user completed the off-app owner payment by reading
+/// `app_metadata.owner_paid` (should be set via webhook after payment).
+Future<Result<bool>> _checkOwnerPaid(SupabaseClient client) async {
+  try {
+    // Refresh user to pull the latest app_metadata
+    final userResp = await client.supabaseClient.client.auth.getUser();
+    final user = userResp.user ?? client.auth.currentUser;
+    final appMeta = user?.appMetadata ?? {};
+    final raw = appMeta['owner_paid'];
+    final paid = raw == true || raw == 'true' || raw == 1 || raw == '1';
+    return Success(paid);
+  } catch (e) {
+    return Failure('Failed to check payment status: ${e.toString()}');
+  }
+}
+
 class RestaurantSettingsApi {
   RestaurantSettingsApi(this._client);
   final SupabaseClient _client;
@@ -180,5 +196,10 @@ class RestaurantSettingsApi {
     } catch (e) {
       return Failure('Failed to delete promotion: $e');
     }
+  }
+
+  /// Returns whether the current owner completed payment (from app_metadata).
+  Future<Result<bool>> getOwnerPaymentStatus() async {
+    return _checkOwnerPaid(_client);
   }
 }

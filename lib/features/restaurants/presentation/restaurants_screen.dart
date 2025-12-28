@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/restaurant_api.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
@@ -19,6 +20,12 @@ final _ownerRestaurantProvider =
     FutureProvider.autoDispose<Result<Restaurant>>((ref) async {
   final api = RestaurantSettingsApi(SupabaseClient.instance);
   return api.getMyRestaurant();
+});
+
+final _ownerPaymentStatusProvider =
+    FutureProvider.autoDispose<Result<bool>>((ref) async {
+  final api = RestaurantSettingsApi(SupabaseClient.instance);
+  return api.getOwnerPaymentStatus();
 });
 
 /// Restaurants list screen
@@ -399,7 +406,7 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final resultAsync = ref.watch(_ownerRestaurantProvider);
+    final paymentAsync = ref.watch(_ownerPaymentStatusProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Restaurant'),
@@ -412,83 +419,111 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
           ),
         ],
       ),
-      body: resultAsync.when(
+      body: paymentAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _OwnerEmptyState(
-            onCreate: () {
-              _showCreateDialog(context, ref);
-            },
-            message: 'Failed: $e'),
-        data: (result) {
-          if (result.isFailure) {
-            final msg = result.errorOrNull ?? 'No restaurant assigned';
-            return _OwnerEmptyState(
+        error: (e, _) => _OwnerPaymentRequired(
+          message: 'Payment check failed: $e',
+          onPay: () => _openOwnerPayment(context),
+          onRefresh: () {
+            ref.invalidate(_ownerPaymentStatusProvider);
+            ref.invalidate(_ownerRestaurantProvider);
+          },
+        ),
+        data: (payResult) {
+          if (payResult.isFailure || payResult.dataOrNull != true) {
+            final msg = payResult.errorOrNull ??
+                'Complete the business payment to continue';
+            return _OwnerPaymentRequired(
               message: msg,
-              onCreate: () {
-                _showCreateDialog(context, ref);
+              onPay: () => _openOwnerPayment(context),
+              onRefresh: () {
+                ref.invalidate(_ownerPaymentStatusProvider);
+                ref.invalidate(_ownerRestaurantProvider);
               },
             );
           }
-          final restaurant = result.dataOrNull!;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          restaurant.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        if (restaurant.address != null)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(Icons.location_on, size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(restaurant.address!)),
+
+          final resultAsync = ref.watch(_ownerRestaurantProvider);
+          return resultAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => _OwnerEmptyState(
+                onCreate: () {
+                  _showCreateDialog(context, ref);
+                },
+                message: 'Failed: $e'),
+            data: (result) {
+              if (result.isFailure) {
+                final msg = result.errorOrNull ?? 'No restaurant assigned';
+                return _OwnerEmptyState(
+                  message: msg,
+                  onCreate: () {
+                    _showCreateDialog(context, ref);
+                  },
+                );
+              }
+              final restaurant = result.dataOrNull!;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              restaurant.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            if (restaurant.address != null)
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.location_on, size: 18),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(restaurant.address!)),
+                                ],
+                              ),
+                            if (restaurant.phone != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.phone, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(restaurant.phone!),
+                                ],
+                              ),
                             ],
-                          ),
-                        if (restaurant.phone != null) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.phone, size: 18),
-                              const SizedBox(width: 8),
-                              Text(restaurant.phone!),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () =>
-                              context.go('/home/restaurant/settings'),
-                          icon: const Icon(Icons.edit_location),
-                          label: const Text('Edit contact / address'),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  context.go('/home/restaurant/settings'),
+                              icon: const Icon(Icons.edit_location),
+                              label: const Text('Edit contact / address'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  context.go('/home/restaurant/setup'),
+                              icon: const Icon(Icons.menu_book),
+                              label: const Text('Manage Menu'),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          onPressed: () => context.go('/home/restaurant/setup'),
-                          icon: const Icon(Icons.menu_book),
-                          label: const Text('Manage Menu'),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _OwnerMapAutoLocate(restaurant: restaurant),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _OwnerMapAutoLocate(restaurant: restaurant),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -735,6 +770,67 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     );
   } else {
     context.go('/welcome');
+  }
+}
+
+Future<void> _openOwnerPayment(BuildContext context) async {
+  final user = SupabaseClient.instance.auth.currentUser;
+  final uid = user?.id ?? '';
+  final email = user?.email ?? '';
+  final returnUrl = 'cleardish://payment-complete';
+  final url =
+      'https://cleardish.co.uk/restaurant-payment/?uid=$uid&email=$email&return_url=$returnUrl';
+  final uri = Uri.parse(url);
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Opened payment page in browser. Complete and return.'),
+    ),
+  );
+}
+
+class _OwnerPaymentRequired extends StatelessWidget {
+  const _OwnerPaymentRequired({
+    required this.onPay,
+    required this.onRefresh,
+    this.message,
+  });
+  final VoidCallback onPay;
+  final VoidCallback onRefresh;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock, size: 56),
+            const SizedBox(height: 12),
+            Text(
+              message ??
+                  'Please complete the business payment on our website to continue.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onPay,
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Open payment page'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onRefresh,
+              icon: const Icon(Icons.refresh),
+              label: const Text('I already paid – refresh'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

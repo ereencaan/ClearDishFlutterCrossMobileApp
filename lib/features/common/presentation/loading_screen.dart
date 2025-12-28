@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cleardish/core/utils/result.dart';
+import 'package:cleardish/data/sources/restaurant_settings_api.dart';
+import 'package:cleardish/data/sources/supabase_client.dart' as cd_supabase;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// A soft, modern loading screen shown briefly after login for all roles.
@@ -76,9 +79,19 @@ class _LoadingScreenState extends State<LoadingScreen>
       }
     }
 
-    // Ensure restaurant owner has a restaurant mapping; create if missing
+    // Ensure restaurant owner is paid and has a restaurant mapping; create only if paid
     if (role == 'restaurant' && user != null) {
       try {
+        final api =
+            RestaurantSettingsApi(cd_supabase.SupabaseClient.instance);
+        final paidRes = await api.getOwnerPaymentStatus();
+        final paid = paidRes is Success<bool> && paidRes.data == true;
+        if (!paid) {
+          // Skip auto-create; UI will show payment required gate
+          context.go('/home');
+          return;
+        }
+
         final mapping = await client
             .from('restaurant_admins')
             .select('restaurant_id')
