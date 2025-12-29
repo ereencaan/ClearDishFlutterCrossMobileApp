@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supa;
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/restaurant_api.dart';
 import 'package:cleardish/data/sources/restaurant_settings_api.dart';
@@ -752,6 +753,143 @@ class _OwnerMapAutoLocateState extends State<_OwnerMapAutoLocate> {
       ),
       child: const Center(
         child: Text('Add a UK postcode in address to auto-pin on the map'),
+      ),
+    );
+  }
+}
+
+class PaymentCompleteScreen extends ConsumerStatefulWidget {
+  const PaymentCompleteScreen({super.key});
+
+  @override
+  ConsumerState<PaymentCompleteScreen> createState() =>
+      _PaymentCompleteScreenState();
+}
+
+class _PaymentCompleteScreenState
+    extends ConsumerState<PaymentCompleteScreen> {
+  bool _loading = true;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPayment();
+  }
+
+  Future<void> _checkPayment({bool manual = false}) async {
+    setState(() {
+      _loading = true;
+      if (manual) _message = null;
+    });
+
+    final user = SupabaseClient.instance.auth.currentUser;
+    if (user == null) {
+      setState(() {
+        _loading = false;
+        _message = 'Please log in again to continue.';
+      });
+      if (mounted) context.go('/welcome');
+      return;
+    }
+
+    final api = RestaurantSettingsApi(SupabaseClient.instance);
+    final res = await api.getOwnerPaymentStatus();
+    if (res is Success<bool> && res.data == true) {
+      await _ensureOwnerRestaurantExists(user);
+      ref.invalidate(_ownerPaymentStatusProvider);
+      ref.invalidate(_ownerRestaurantProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment confirmed. Unlocking your restaurant.'),
+        ),
+      );
+      context.go('/home');
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _message = res.errorOrNull ??
+          'Payment not confirmed yet. Please try again in a moment.';
+    });
+  }
+
+  Future<void> _ensureOwnerRestaurantExists(supa.User user) async {
+    try {
+      final client = SupabaseClient.instance.supabaseClient.client;
+      final mapping = await client
+          .from('restaurant_admins')
+          .select('restaurant_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      if (mapping == null) {
+        final meta = user.userMetadata ?? {};
+        final rName =
+            (meta['restaurant_name'] as String?)?.trim().isNotEmpty == true
+                ? (meta['restaurant_name'] as String).trim()
+                : 'My Restaurant';
+        final rAddr =
+            (meta['address'] as String?)?.trim().isNotEmpty == true
+                ? (meta['address'] as String).trim()
+                : 'E2 6AU';
+        await client.rpc('create_restaurant_with_owner', params: {
+          'p_name': rName,
+          'p_address': rAddr,
+          'p_phone': null,
+        });
+      }
+    } catch (_) {
+      // Fallback handled by UI if creation still missing
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: const AppBackButton(fallbackRoute: '/home'),
+        title: const Text('Payment confirmation'),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: _loading
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 12),
+                    Text('Checking payment status...'),
+                  ],
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_open, size: 56),
+                    const SizedBox(height: 12),
+                    Text(
+                      _message ??
+                          'Payment confirmed. Returning to your restaurant...',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: () => _checkPayment(manual: true),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Refresh status'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _openOwnerPayment(context),
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Open payment page'),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

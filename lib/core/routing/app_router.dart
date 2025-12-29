@@ -5,6 +5,8 @@ import 'package:cleardish/features/auth/models/auth_role.dart';
 import 'package:cleardish/features/auth/presentation/welcome_screen.dart';
 import 'package:cleardish/features/home/presentation/home_shell.dart';
 import 'package:cleardish/features/restaurants/presentation/restaurants_screen.dart';
+import 'package:cleardish/features/restaurants/presentation/restaurants_screen.dart'
+    as rest show PaymentCompleteScreen;
 import 'package:cleardish/features/restaurants/presentation/restaurant_detail_screen.dart';
 import 'package:cleardish/features/menu/presentation/menu_screen.dart';
 import 'package:cleardish/features/profile/presentation/profile_screen.dart';
@@ -66,6 +68,11 @@ final class AppRouter {
         path: '/loading',
         name: 'loading',
         builder: (context, state) => const LoadingScreen(),
+      ),
+      GoRoute(
+        path: '/payment-complete',
+        name: 'payment-complete',
+        builder: (context, state) => const rest.PaymentCompleteScreen(),
       ),
       GoRoute(
         path: '/onboarding',
