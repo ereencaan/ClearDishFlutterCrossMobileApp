@@ -1,19 +1,61 @@
 import 'package:cleardish/core/utils/result.dart';
-import 'package:cleardish/data/models/promotion.dart';
 import 'package:cleardish/data/models/restaurant.dart';
 import 'package:cleardish/data/sources/supabase_client.dart';
+import 'package:cleardish/data/models/promotion.dart';
 
 /// Checks if the current user completed the off-app owner payment by reading
 /// `app_metadata.owner_paid` (should be set via webhook after payment).
-Future<Result<bool>> _checkOwnerPaid(SupabaseClient client) async {
+class OwnerPaymentInfo {
+  OwnerPaymentInfo({
+    required this.active,
+    this.plan,
+    this.paidUntil,
+  });
+
+  final bool active;
+  final String? plan;
+  final DateTime? paidUntil;
+}
+
+OwnerPaymentInfo _parseOwnerPaymentInfo(Map<String, dynamic> appMeta) {
+  final now = DateTime.now();
+  final plan = (appMeta['owner_plan'] as String?)?.trim();
+  final rawPaidFlag = appMeta['owner_paid'];
+  final rawPaidUntil = appMeta['owner_paid_until'];
+
+  DateTime? paidUntil;
+  if (rawPaidUntil is String) {
+    try {
+      paidUntil = DateTime.tryParse(rawPaidUntil);
+    } catch (_) {}
+  } else if (rawPaidUntil is int) {
+    // Treat as seconds since epoch
+    paidUntil = DateTime.fromMillisecondsSinceEpoch(rawPaidUntil * 1000);
+  } else if (rawPaidUntil is double) {
+    paidUntil = DateTime.fromMillisecondsSinceEpoch(
+        (rawPaidUntil * 1000).round());
+  }
+
+  final paidFlag =
+      rawPaidFlag == true || rawPaidFlag == 'true' || rawPaidFlag == 1;
+  final active = paidUntil != null ? paidUntil.isAfter(now) : paidFlag;
+
+  return OwnerPaymentInfo(
+    active: active,
+    plan: plan,
+    paidUntil: paidUntil,
+  );
+}
+
+Future<Result<OwnerPaymentInfo>> _checkOwnerPaymentInfo(
+    SupabaseClient client) async {
   try {
     // Refresh user to pull the latest app_metadata
     final userResp = await client.supabaseClient.client.auth.getUser();
     final user = userResp.user ?? client.auth.currentUser;
     final appMeta = user?.appMetadata ?? {};
-    final raw = appMeta['owner_paid'];
-    final paid = raw == true || raw == 'true' || raw == 1 || raw == '1';
-    return Success(paid);
+    final info = _parseOwnerPaymentInfo(appMeta);
+    return Success(info);
   } catch (e) {
     return Failure('Failed to check payment status: ${e.toString()}');
   }
@@ -198,8 +240,17 @@ class RestaurantSettingsApi {
     }
   }
 
-  /// Returns whether the current owner completed payment (from app_metadata).
+  /// Returns owner payment info (plan + expiry) from app_metadata.
+  Future<Result<OwnerPaymentInfo>> getOwnerPaymentInfo() async {
+    return _checkOwnerPaymentInfo(_client);
+  }
+
+  /// Backwards-compatible bool status; prefers paid_until if present.
   Future<Result<bool>> getOwnerPaymentStatus() async {
-    return _checkOwnerPaid(_client);
+    final res = await getOwnerPaymentInfo();
+    if (res is Success<OwnerPaymentInfo>) {
+      return Success(res.data.active);
+    }
+    return Failure(res.errorOrNull ?? 'Failed to check payment status');
   }
 }

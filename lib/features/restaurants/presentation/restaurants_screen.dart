@@ -23,10 +23,10 @@ final _ownerRestaurantProvider =
   return api.getMyRestaurant();
 });
 
-final _ownerPaymentStatusProvider =
-    FutureProvider.autoDispose<Result<bool>>((ref) async {
+final _ownerPaymentInfoProvider =
+    FutureProvider.autoDispose<Result<OwnerPaymentInfo>>((ref) async {
   final api = RestaurantSettingsApi(SupabaseClient.instance);
-  return api.getOwnerPaymentStatus();
+  return api.getOwnerPaymentInfo();
 });
 
 /// Restaurants list screen
@@ -407,7 +407,7 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final paymentAsync = ref.watch(_ownerPaymentStatusProvider);
+    final paymentAsync = ref.watch(_ownerPaymentInfoProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Restaurant'),
@@ -426,19 +426,21 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
           message: 'Payment check failed: $e',
           onPay: () => _openOwnerPayment(context),
           onRefresh: () {
-            ref.invalidate(_ownerPaymentStatusProvider);
+            ref.invalidate(_ownerPaymentInfoProvider);
             ref.invalidate(_ownerRestaurantProvider);
           },
         ),
         data: (payResult) {
-          if (payResult.isFailure || payResult.dataOrNull != true) {
+          final info = payResult.dataOrNull;
+          final isActive = info?.active == true;
+          if (payResult.isFailure || !isActive) {
             final msg = payResult.errorOrNull ??
                 'Complete the business payment to continue';
             return _OwnerPaymentRequired(
               message: msg,
               onPay: () => _openOwnerPayment(context),
               onRefresh: () {
-                ref.invalidate(_ownerPaymentStatusProvider);
+                ref.invalidate(_ownerPaymentInfoProvider);
                 ref.invalidate(_ownerRestaurantProvider);
               },
             );
@@ -468,6 +470,54 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (info?.plan != null || info?.paidUntil != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          color:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.verified_user),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Plan: ${info?.plan ?? 'Active'}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.w600),
+                                      ),
+                                      if (info?.paidUntil != null)
+                                        Text(
+                                          'Renews after ${info!.paidUntil!.toIso8601String().split('T').first}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Refresh payment status',
+                                  onPressed: () {
+                                    ref.invalidate(_ownerPaymentInfoProvider);
+                                    ref.invalidate(_ownerRestaurantProvider);
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -766,8 +816,7 @@ class PaymentCompleteScreen extends ConsumerStatefulWidget {
       _PaymentCompleteScreenState();
 }
 
-class _PaymentCompleteScreenState
-    extends ConsumerState<PaymentCompleteScreen> {
+class _PaymentCompleteScreenState extends ConsumerState<PaymentCompleteScreen> {
   bool _loading = true;
   String? _message;
 
@@ -794,10 +843,10 @@ class _PaymentCompleteScreenState
     }
 
     final api = RestaurantSettingsApi(SupabaseClient.instance);
-    final res = await api.getOwnerPaymentStatus();
-    if (res is Success<bool> && res.data == true) {
+    final res = await api.getOwnerPaymentInfo();
+    if (res is Success<OwnerPaymentInfo> && res.data.active) {
       await _ensureOwnerRestaurantExists(user);
-      ref.invalidate(_ownerPaymentStatusProvider);
+      ref.invalidate(_ownerPaymentInfoProvider);
       ref.invalidate(_ownerRestaurantProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -831,10 +880,9 @@ class _PaymentCompleteScreenState
             (meta['restaurant_name'] as String?)?.trim().isNotEmpty == true
                 ? (meta['restaurant_name'] as String).trim()
                 : 'My Restaurant';
-        final rAddr =
-            (meta['address'] as String?)?.trim().isNotEmpty == true
-                ? (meta['address'] as String).trim()
-                : 'E2 6AU';
+        final rAddr = (meta['address'] as String?)?.trim().isNotEmpty == true
+            ? (meta['address'] as String).trim()
+            : 'E2 6AU';
         await client.rpc('create_restaurant_with_owner', params: {
           'p_name': rName,
           'p_address': rAddr,
@@ -916,14 +964,69 @@ Future<void> _openOwnerPayment(BuildContext context) async {
   final uid = user?.id ?? '';
   final email = user?.email ?? '';
   final returnUrl = 'cleardish://payment-complete';
+  const plans = [
+    {'id': 'starter', 'label': 'Starter - £19/mo'},
+    {'id': 'pro', 'label': 'Pro - £39/mo'},
+    {'id': 'plus', 'label': 'Plus - £79/mo'},
+  ];
+
+  String current = plans.first['id']!;
+
+  final selectedPlan = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setSt) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Choose a plan',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                ...plans.map(
+                  (p) => RadioListTile<String>(
+                    value: p['id']!,
+                    groupValue: current,
+                    title: Text(p['label']!),
+                    onChanged: (val) {
+                      if (val != null) setSt(() => current = val);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(current),
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('Open payment page'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+
+  if (selectedPlan == null) return;
+
   final url =
-      'https://cleardish.co.uk/restaurant-payment/?uid=$uid&email=$email&return_url=$returnUrl';
+      'https://cleardish.co.uk/restaurant-payment/?uid=$uid&email=$email&plan=$selectedPlan&return_url=$returnUrl';
   final uri = Uri.parse(url);
   await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Opened payment page in browser. Complete and return.'),
+    SnackBar(
+      content:
+          Text('Opened payment page for ${selectedPlan.toUpperCase()} plan.'),
     ),
   );
 }
@@ -951,6 +1054,11 @@ class _OwnerPaymentRequired extends StatelessWidget {
             Text(
               message ??
                   'Please complete the business payment on our website to continue.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Plans: Starter £19/mo • Pro £39/mo • Plus £79/mo',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
