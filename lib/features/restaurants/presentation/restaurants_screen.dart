@@ -1018,6 +1018,8 @@ Future<void> _openOwnerPayment(BuildContext context) async {
 
   if (selectedPlan == null) return;
 
+  final normalizedPlan = selectedPlan.trim().toLowerCase();
+
   // WPForms free/basic plans often can't support multiple subscription plans
   // in a single form. We therefore route to a plan-specific payment page.
   //
@@ -1028,7 +1030,7 @@ Future<void> _openOwnerPayment(BuildContext context) async {
   //
   // Each page should include hidden fields populated from query string:
   // uid, email, return_url, plan (optional).
-  final slug = switch (selectedPlan) {
+  final slug = switch (normalizedPlan) {
     'starter' => 'restaurant-payment-starter',
     'pro' => 'restaurant-payment-pro',
     'plus' => 'restaurant-payment-plus',
@@ -1038,16 +1040,16 @@ Future<void> _openOwnerPayment(BuildContext context) async {
   final url = Uri.https('cleardish.co.uk', '/$slug/', {
     'uid': uid,
     'email': email,
-    'plan': selectedPlan,
+    'plan': normalizedPlan,
     'return_url': returnUrl,
   }).toString();
+  debugPrint('Owner payment: plan=$normalizedPlan slug=$slug url=$url');
   final uri = Uri.parse(url);
   await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content:
-          Text('Opened payment page for ${selectedPlan.toUpperCase()} plan.'),
+      content: Text('Opened payment page for ${normalizedPlan.toUpperCase()}'),
     ),
   );
 }
