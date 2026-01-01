@@ -1,0 +1,15 @@
+# Minimal Supabase CLI configuration for this repo.
+# This helps `supabase functions deploy` and other commands.
+#
+# You can still deploy by passing `--project-ref` (recommended).
+
+[api]
+enabled = true
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323

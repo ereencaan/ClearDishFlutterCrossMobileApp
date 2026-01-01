@@ -188,6 +188,7 @@ final class AppRouter {
       ),
     ],
     redirect: (context, state) {
+      final path = state.uri.path;
       final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
       final isOnAuthScreen = state.matchedLocation.startsWith('/welcome') ||
           state.matchedLocation.startsWith('/login') ||
@@ -206,6 +207,44 @@ final class AppRouter {
           return '/admin';
         }
         return '/home';
+      }
+
+      // Gate restaurant-owner navigation behind external payment.
+      // If unpaid, only allow the payment gate screen and the payment-complete route.
+      if (isLoggedIn) {
+        final user = Supabase.instance.client.auth.currentUser!;
+        final role = user.userMetadata?['role'] as String?;
+        if (role == 'restaurant') {
+          // Always allow the deep link return screen.
+          if (path == '/payment-complete') return null;
+
+          final appMeta = user.appMetadata;
+          final now = DateTime.now();
+
+          DateTime? paidUntil;
+          final rawPaidUntil = appMeta['owner_paid_until'];
+          if (rawPaidUntil is String) {
+            paidUntil = DateTime.tryParse(rawPaidUntil);
+          } else if (rawPaidUntil is int) {
+            paidUntil =
+                DateTime.fromMillisecondsSinceEpoch(rawPaidUntil * 1000);
+          } else if (rawPaidUntil is double) {
+            paidUntil = DateTime.fromMillisecondsSinceEpoch(
+                (rawPaidUntil * 1000).round());
+          }
+
+          final rawPaidFlag = appMeta['owner_paid'];
+          final paidFlag =
+              rawPaidFlag == true || rawPaidFlag == 'true' || rawPaidFlag == 1;
+          final isPaid = paidUntil != null ? paidUntil.isAfter(now) : paidFlag;
+
+          if (!isPaid) {
+            // Allow only the gate screen itself.
+            if (path != '/home/restaurants') {
+              return '/home/restaurants';
+            }
+          }
+        }
       }
 
       return null;

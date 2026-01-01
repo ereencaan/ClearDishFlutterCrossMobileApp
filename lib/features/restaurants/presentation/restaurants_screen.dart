@@ -1018,8 +1018,29 @@ Future<void> _openOwnerPayment(BuildContext context) async {
 
   if (selectedPlan == null) return;
 
-  final url =
-      'https://cleardish.co.uk/restaurant-payment/?uid=$uid&email=$email&plan=$selectedPlan&return_url=$returnUrl';
+  // WPForms free/basic plans often can't support multiple subscription plans
+  // in a single form. We therefore route to a plan-specific payment page.
+  //
+  // Create 3 WordPress pages (each embeds a different WPForms form):
+  // - /restaurant-payment-starter/
+  // - /restaurant-payment-pro/
+  // - /restaurant-payment-plus/
+  //
+  // Each page should include hidden fields populated from query string:
+  // uid, email, return_url, plan (optional).
+  final slug = switch (selectedPlan) {
+    'starter' => 'restaurant-payment-starter',
+    'pro' => 'restaurant-payment-pro',
+    'plus' => 'restaurant-payment-plus',
+    _ => 'restaurant-payment',
+  };
+
+  final url = Uri.https('cleardish.co.uk', '/$slug/', {
+    'uid': uid,
+    'email': email,
+    'plan': selectedPlan,
+    'return_url': returnUrl,
+  }).toString();
   final uri = Uri.parse(url);
   await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!context.mounted) return;
