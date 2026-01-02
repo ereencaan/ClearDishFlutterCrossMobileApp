@@ -187,7 +187,7 @@ final class AppRouter {
         ],
       ),
     ],
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final path = state.uri.path;
       final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
       final isOnAuthScreen = state.matchedLocation.startsWith('/welcome') ||
@@ -212,7 +212,9 @@ final class AppRouter {
       // Gate restaurant-owner navigation behind external payment.
       // If unpaid, only allow the payment gate screen and the payment-complete route.
       if (isLoggedIn) {
-        final user = Supabase.instance.client.auth.currentUser!;
+        // Fetch latest user so app_metadata reflects webhook updates.
+        final userResp = await Supabase.instance.client.auth.getUser();
+        final user = userResp.user ?? Supabase.instance.client.auth.currentUser!;
         final role = user.userMetadata?['role'] as String?;
         if (role == 'restaurant') {
           // Always allow the deep link return screen.

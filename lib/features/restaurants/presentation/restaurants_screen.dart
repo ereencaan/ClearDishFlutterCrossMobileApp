@@ -425,7 +425,9 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
         error: (e, _) => _OwnerPaymentRequired(
           message: 'Payment check failed: $e',
           onPay: () => _openOwnerPayment(context),
-          onRefresh: () {
+          onRefresh: () async {
+            // Force-refresh auth user so app_metadata picks up webhook updates.
+            await SupabaseClient.instance.supabaseClient.client.auth.getUser();
             ref.invalidate(_ownerPaymentInfoProvider);
             ref.invalidate(_ownerRestaurantProvider);
           },
@@ -439,7 +441,9 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
             return _OwnerPaymentRequired(
               message: msg,
               onPay: () => _openOwnerPayment(context),
-              onRefresh: () {
+              onRefresh: () async {
+                // Force-refresh auth user so app_metadata picks up webhook updates.
+                await SupabaseClient.instance.supabaseClient.client.auth.getUser();
                 ref.invalidate(_ownerPaymentInfoProvider);
                 ref.invalidate(_ownerRestaurantProvider);
               },

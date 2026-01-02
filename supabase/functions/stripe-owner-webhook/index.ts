@@ -36,6 +36,69 @@ function getMeta(obj: unknown): Meta {
   return {};
 }
 
+function getDescription(obj: unknown): string | undefined {
+  if (obj && typeof obj === "object" && "description" in obj) {
+    const d = (obj as { description?: unknown }).description;
+    if (typeof d === "string" && d.trim().length > 0) return d;
+  }
+  return undefined;
+}
+
+function parseFromDescription(desc?: string): { ownerUid?: string; plan?: string; email?: string } {
+  if (!desc) return {};
+  // We expect something like:
+  // "cleardish owner_uid=<uuid> plan=starter email=test@example.com"
+  const ownerUid =
+    desc.match(/\bowner_uid\s*[:=]\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i)?.[1];
+  const plan =
+    desc.match(/\bplan\s*[:=]\s*(starter|pro|plus)\b/i)?.[1]?.toLowerCase();
+  const email =
+    desc.match(/\bemail\s*[:=]\s*([^\s|,;]+@[^\s|,;]+)\b/i)?.[1];
+  return { ownerUid, plan, email };
+}
+
+function inferFromMeta(meta: Meta): { ownerUid?: string; plan?: string; email?: string } {
+  const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const emailRe = /[^\s|,;]+@[^\s|,;]+\.[^\s|,;]+/i;
+  const plans = new Set(["starter", "pro", "plus"]);
+
+  let ownerUid: string | undefined;
+  let plan: string | undefined;
+  let email: string | undefined;
+
+  const uuidCandidates: string[] = [];
+
+  for (const [k, v] of Object.entries(meta)) {
+    const key = k.toLowerCase();
+    const val = toStr(v)?.trim();
+    if (!val) continue;
+
+    // collect uuids as candidates
+    const uuidMatch = val.match(uuidRe)?.[0];
+    if (uuidMatch) {
+      uuidCandidates.push(uuidMatch);
+      if (!ownerUid && (key.includes("uid") || key.includes("owner"))) {
+        ownerUid = uuidMatch;
+      }
+    }
+
+    if (!plan) {
+      const maybePlan = val.toLowerCase();
+      if (plans.has(maybePlan)) plan = maybePlan;
+    }
+
+    if (!email) {
+      const m = val.match(emailRe)?.[0];
+      if (m) email = m;
+    }
+  }
+
+  // If we found exactly one UUID anywhere in metadata, accept it as owner uid.
+  if (!ownerUid && uuidCandidates.length === 1) ownerUid = uuidCandidates[0];
+
+  return { ownerUid, plan, email };
+}
+
 function addDaysIso(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -50,6 +113,41 @@ function inferPlanFromPriceId(priceId?: string): string | undefined {
   if (starter && priceId === starter) return "starter";
   if (pro && priceId === pro) return "pro";
   if (plus && priceId === plus) return "plus";
+  return undefined;
+}
+
+function extractEmailFromObj(obj: any): string | undefined {
+  const candidates = [
+    obj?.customer_email,
+    obj?.receipt_email,
+    obj?.customer_details?.email,
+    obj?.billing_details?.email,
+    obj?.charges?.data?.[0]?.billing_details?.email,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.includes("@")) return c.trim();
+  }
+  return undefined;
+}
+
+async function resolveOwnerUidByEmail(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  email?: string,
+): Promise<string | undefined> {
+  if (!email) return undefined;
+  const target = email.trim().toLowerCase();
+  // Best-effort: paginate a few pages; most projects will be small.
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+    if (error) return undefined;
+    const users = data?.users ?? [];
+    const match = users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (match?.id) return match.id;
+    if (users.length < 200) break; // no more pages
+  }
   return undefined;
 }
 
@@ -107,6 +205,27 @@ async function bestEffortPaidUntil(
       return { ...fallback, subscriptionId: toStr(subId), customerId: toStr(customerId) };
     }
 
+    // invoice_payment.paid (Stripe "invoice_payment" object)
+    if (obj?.object === "invoice_payment") {
+      const invoiceId = toStr(obj?.invoice);
+      const piId = toStr(obj?.payment?.payment_intent);
+      if (invoiceId) {
+        const inv = await stripe.invoices.retrieve(invoiceId);
+        const line = (inv as any)?.lines?.data?.[0];
+        const periodEnd = line?.period?.end ?? (inv as any)?.period_end;
+        if (typeof periodEnd === "number") {
+          return {
+            paidUntilIso: new Date(periodEnd * 1000).toISOString(),
+            subscriptionId: toStr((inv as any)?.subscription),
+            customerId: toStr((inv as any)?.customer),
+            priceId: line?.price?.id,
+          };
+        }
+      }
+      // Fallback: we at least keep customer id if present
+      return { ...fallback, customerId: toStr(obj?.customer), subscriptionId: undefined, priceId: undefined };
+    }
+
     // payment_intent.succeeded / charge.succeeded
     if (obj?.object === "payment_intent" || obj?.object === "charge") {
       return { ...fallback, customerId: toStr(obj?.customer) };
@@ -146,7 +265,9 @@ Deno.serve(async (req: Request) => {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, stripeWebhookSecret);
+    // In Deno/Edge runtimes, webhook verification must use the async variant.
+    // Otherwise you may see: "SubtleCryptoProvider cannot be used in a synchronous context".
+    event = await stripe.webhooks.constructEventAsync(rawBody, sig, stripeWebhookSecret);
   } catch (e) {
     return new Response(`Webhook signature verification failed: ${e instanceof Error ? e.message : "unknown"}`, {
       status: 400,
@@ -157,6 +278,8 @@ Deno.serve(async (req: Request) => {
   const supported = new Set([
     "checkout.session.completed",
     "invoice.payment_succeeded",
+    "invoice.paid",
+    "invoice_payment.paid",
     "payment_intent.succeeded",
     "charge.succeeded",
     "customer.subscription.created",
@@ -169,14 +292,41 @@ Deno.serve(async (req: Request) => {
 
   const obj: any = (event.data as any)?.object;
   const meta = getMeta(obj);
+  const desc = getDescription(obj);
+  const parsed = parseFromDescription(desc);
+  const inferred = inferFromMeta(meta);
 
   // WPForms custom meta keys (recommended):
   // - owner_uid, plan, email, restaurant_name, address
-  const ownerUid = toStr(meta["owner_uid"]);
-  const metaPlan = (toStr(meta["plan"]) ?? "").toLowerCase();
+  const ownerUid =
+    toStr(meta["owner_uid"]) ??
+    toStr(meta["uid"]) ??
+    parsed.ownerUid ??
+    inferred.ownerUid;
+  const metaPlan = ((
+    toStr(meta["plan"]) ??
+    toStr(meta["owner_plan"]) ??
+    parsed.plan ??
+    inferred.plan ??
+    ""
+  )).toLowerCase();
 
-  // Without owner_uid we can't safely grant access.
-  if (!ownerUid) return new Response("Missing metadata.owner_uid", { status: 400 });
+  const ownerEmail =
+    toStr(meta["email"]) ??
+    parsed.email ??
+    inferred.email ??
+    extractEmailFromObj(obj);
+
+  // If owner_uid is missing, try to resolve by email (emails are unique in Supabase Auth).
+  const resolvedOwnerUid =
+    ownerUid ?? (await resolveOwnerUidByEmail(supabaseAdmin, ownerEmail));
+
+  if (!resolvedOwnerUid) {
+    return new Response(
+      "Missing owner identifier (need metadata.owner_uid or resolvable email).",
+      { status: 400 },
+    );
+  }
 
   const { paidUntilIso, subscriptionId, customerId, priceId } = await bestEffortPaidUntil(
     stripe,
@@ -194,7 +344,7 @@ Deno.serve(async (req: Request) => {
   if (subscriptionId) nextMeta["owner_subscription_id"] = subscriptionId;
   if (customerId) nextMeta["owner_customer_id"] = customerId;
 
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(ownerUid, {
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(resolvedOwnerUid, {
     app_metadata: nextMeta,
   });
 
