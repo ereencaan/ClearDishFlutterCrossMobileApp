@@ -113,6 +113,11 @@ function inferPlanFromPriceId(priceId?: string): string | undefined {
   if (starter && priceId === starter) return "starter";
   if (pro && priceId === pro) return "pro";
   if (plus && priceId === plus) return "plus";
+  // Fallback: infer from common naming conventions (e.g. "starter_1900_monthly")
+  const p = priceId.toLowerCase();
+  if (p.includes("starter")) return "starter";
+  if (p.includes("plus")) return "plus";
+  if (p.includes("pro")) return "pro";
   return undefined;
 }
 
