@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for Google Play Billing -->
+    <uses-permission android:name="com.android.vending.BILLING" />
     <application
         android:label="cleardish"
         android:name="${applicationName}"
