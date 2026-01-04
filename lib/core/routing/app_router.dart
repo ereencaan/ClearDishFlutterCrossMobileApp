@@ -8,6 +8,8 @@ import 'package:cleardish/features/restaurants/presentation/restaurants_screen.d
 import 'package:cleardish/features/restaurants/presentation/restaurants_screen.dart'
     as rest show PaymentCompleteScreen;
 import 'package:cleardish/features/restaurants/presentation/restaurant_detail_screen.dart';
+import 'package:cleardish/features/restaurants/presentation/restaurant_locations_screen.dart';
+import 'package:cleardish/features/restaurants/presentation/restaurant_diet_tags_screen.dart';
 import 'package:cleardish/features/menu/presentation/menu_screen.dart';
 import 'package:cleardish/features/profile/presentation/profile_screen.dart';
 import 'package:cleardish/features/subscription/presentation/subscription_screen.dart';
@@ -165,6 +167,16 @@ final class AppRouter {
             path: '/home/restaurant/setup',
             name: 'restaurant-setup',
             builder: (context, state) => const RestaurantSetupScreen(),
+          ),
+          GoRoute(
+            path: '/home/restaurant/locations',
+            name: 'restaurant-locations',
+            builder: (context, state) => const RestaurantLocationsScreen(),
+          ),
+          GoRoute(
+            path: '/home/restaurant/diet-tags',
+            name: 'restaurant-diet-tags',
+            builder: (context, state) => const RestaurantDietTagsScreen(),
           ),
           GoRoute(
             path: '/home/menu/:restaurantId',

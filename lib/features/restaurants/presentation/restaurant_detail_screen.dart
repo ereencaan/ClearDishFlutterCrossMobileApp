@@ -8,6 +8,8 @@ import 'package:cleardish/features/restaurants/widgets/restaurants_map.dart';
 import 'package:cleardish/widgets/app_back_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cleardish/data/sources/postcode_api.dart';
+import 'package:cleardish/data/sources/restaurant_diet_tags_api.dart';
+import 'package:cleardish/data/sources/supabase_client.dart';
 
 /// Restaurant detail screen
 ///
@@ -33,6 +35,7 @@ class _RestaurantDetailScreenState
   double? _latOverride;
   double? _lngOverride;
   String? _addressOverride;
+  List<String> _dietTags = const [];
 
   @override
   void initState() {
@@ -48,6 +51,17 @@ class _RestaurantDetailScreenState
 
     final repo = RestaurantRepo();
     final result = await repo.getRestaurant(widget.restaurantId);
+
+    // Load diet tags (best-effort; public read)
+    try {
+      final tagsApi = RestaurantDietTagsApi(SupabaseClient.instance);
+      final tagsRes = await tagsApi.listTags(restaurantId: widget.restaurantId);
+      if (tagsRes.isSuccess) {
+        _dietTags = tagsRes.dataOrNull ?? const [];
+      }
+    } catch (_) {
+      // ignore
+    }
 
     if (result.isSuccess) {
       final r = result.dataOrNull!;
@@ -144,6 +158,22 @@ class _RestaurantDetailScreenState
                   fontWeight: FontWeight.bold,
                 ),
           ),
+          if (_dietTags.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _dietTags
+                  .map(
+                    (t) => Chip(
+                      label: Text(t),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.secondaryContainer,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
           const SizedBox(height: 12),
           if ((_latOverride ?? _restaurant!.lat) != null &&
               (_lngOverride ?? _restaurant!.lng) != null)

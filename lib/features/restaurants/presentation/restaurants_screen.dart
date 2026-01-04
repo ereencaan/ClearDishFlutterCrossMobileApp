@@ -569,6 +569,35 @@ class _OwnerRestaurantOverview extends ConsumerWidget {
                               icon: const Icon(Icons.menu_book),
                               label: const Text('Manage Menu'),
                             ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                final p = (info?.plan ?? '').toLowerCase();
+                                final ok = p == 'pro' || p == 'plus';
+                                if (!ok) {
+                                  context.go('/home/subscription');
+                                  return;
+                                }
+                                context.go('/home/restaurant/diet-tags');
+                              },
+                              icon: const Icon(Icons.sell_outlined),
+                              label: const Text('Diet tags (Pro/Plus)'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                final p = (info?.plan ?? '').toLowerCase();
+                                final ok = p == 'plus';
+                                if (!ok) {
+                                  context.go('/home/subscription');
+                                  return;
+                                }
+                                context.go('/home/restaurant/locations');
+                              },
+                              icon:
+                                  const Icon(Icons.store_mall_directory_outlined),
+                              label: const Text('Locations (Plus)'),
+                            ),
                           ],
                         ),
                       ),
