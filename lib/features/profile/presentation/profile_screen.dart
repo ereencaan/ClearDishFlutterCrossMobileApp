@@ -18,6 +18,7 @@ import 'package:cleardish/data/sources/supabase_client.dart';
 import 'package:cleardish/widgets/app_back_button.dart';
 import 'package:cleardish/widgets/app_button.dart';
 import 'package:cleardish/widgets/chips_filter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Profile screen
 ///
@@ -121,6 +122,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       );
     } else {
       context.go('/welcome');
+    }
+  }
+
+  Future<void> _openExternal(String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open link')),
+      );
     }
   }
 
@@ -252,6 +263,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ],
               const SizedBox(height: 32),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.privacy_tip_outlined),
+                      title: const Text('Privacy Policy'),
+                      subtitle:
+                          const Text('https://cleardish.co.uk/privacy-policy/'),
+                      onTap: () => _openExternal(
+                        'https://cleardish.co.uk/privacy-policy/',
+                      ),
+                      trailing: const Icon(Icons.open_in_new),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.article_outlined),
+                      title: const Text('Terms & Conditions'),
+                      subtitle: const Text(
+                        'https://cleardish.co.uk/terms-and-conditions/',
+                      ),
+                      onTap: () => _openExternal(
+                        'https://cleardish.co.uk/terms-and-conditions/',
+                      ),
+                      trailing: const Icon(Icons.open_in_new),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               AppButton(
                 label: 'Save Profile',
                 isLoading: profileState.isSaving,
