@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:in_app_purchase/in_app_purchase.dart';
 
+export 'iap_facade_stub.dart'
+    show IapFacade, IapProduct, IapPurchase, IapPurchaseStatus;
+
 import 'iap_facade_stub.dart'
     show IapFacade, IapProduct, IapPurchase, IapPurchaseStatus;
 
@@ -24,20 +27,24 @@ class MobileIapFacade implements IapFacade {
   @override
   Future<List<IapProduct>> queryProducts(Set<String> productIds) async {
     final resp = await _iap.queryProductDetails(productIds);
-    return resp.productDetails.map((p) {
-      return IapProduct(
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        price: p.price,
-      );
-    }).toList(growable: false);
+    return resp.productDetails
+        .map((p) {
+          return IapProduct(
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            price: p.price,
+          );
+        })
+        .toList(growable: false);
   }
 
   @override
   Future<void> buyNonConsumable(String productId) async {
     final resp = await _iap.queryProductDetails({productId});
-    final details = resp.productDetails.isNotEmpty ? resp.productDetails.first : null;
+    final details = resp.productDetails.isNotEmpty
+        ? resp.productDetails.first
+        : null;
     if (details == null) {
       throw StateError('Product not found: $productId');
     }
@@ -68,4 +75,3 @@ class MobileIapFacade implements IapFacade {
 }
 
 IapFacade createIapFacade() => MobileIapFacade.instance();
-

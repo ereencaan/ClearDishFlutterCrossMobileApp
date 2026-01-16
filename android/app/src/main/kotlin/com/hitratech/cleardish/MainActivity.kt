@@ -1,4 +1,4 @@
-package com.example.cleardish
+package com.hitratech.cleardish
 
 import io.flutter.embedding.android.FlutterActivity
 
