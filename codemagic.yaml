@@ -52,14 +52,48 @@ workflows:
           # Convert any literal '\n' to real newlines and drop CR.
           raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
 
+          issuer_id="${APP_STORE_CONNECT_ISSUER_ID:-${APP_STORE_CONNECT_ISSUER:-}}"
+          key_id="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-}}"
+          if [[ -z "$issuer_id" || -z "$key_id" ]]; then
+            echo "Missing App Store Connect API credentials. Need ISSUER_ID and KEY_ID."
+            echo "Set either APP_STORE_CONNECT_ISSUER_ID + APP_STORE_CONNECT_KEY_IDENTIFIER (recommended),"
+            echo "or APP_STORE_CONNECT_ISSUER_ID + APP_STORE_CONNECT_KEY_ID."
+            exit 1
+          fi
+
+          # Write a private key file for the CLI (avoids multiline/env parsing issues).
+          key_file="$HOME/authkey.p8"
           if echo "$raw_key" | grep -q "BEGIN PRIVATE KEY"; then
             # Rebuild PEM with clean base64 body and standard line wraps.
             body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
             pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
-            export APP_STORE_CONNECT_PRIVATE_KEY="$(printf "%b" "$pem")"
+            printf "%b" "$pem" > "$key_file"
+          else
+            # If user pasted base64 (or one-line key), try to decode to DER and convert to PEM.
+            maybe_b64="$(echo "$raw_key" | tr -d '\n ' )"
+            if echo "$maybe_b64" | grep -Eq '^[A-Za-z0-9+/=]+$'; then
+              der_file="$HOME/authkey.der"
+              echo "$maybe_b64" | base64 --decode > "$der_file" || true
+              if command -v openssl >/dev/null 2>&1; then
+                # Convert PKCS8 DER to PEM (unencrypted).
+                openssl pkcs8 -inform DER -in "$der_file" -outform PEM -nocrypt -out "$key_file" || true
+              fi
+            fi
+            # Fallback: write raw as-is.
+            if [[ ! -s "$key_file" ]]; then
+              printf "%b" "$raw_key" > "$key_file"
+            fi
           fi
 
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          echo "App Store Connect key file prepared: $(head -n 1 "$key_file" || true)"
+
+          # Fetch signing files using explicit credentials.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create \
+            --issuer-id "$issuer_id" \
+            --key-id "$key_id" \
+            --private-key "$key_file"
           keychain add-certificates
           xcode-project use-profiles
 
