@@ -87,13 +87,23 @@ workflows:
 
           echo "App Store Connect key file prepared: $(head -n 1 "$key_file" || true)"
 
+          # Validate private key file (do not print key contents).
+          if command -v openssl >/dev/null 2>&1; then
+            openssl pkey -in "$key_file" -noout >/dev/null 2>&1 || {
+              echo "Private key is still not a valid PEM key (openssl failed). Re-download the AuthKey_*.p8 and paste full contents into APP_STORE_CONNECT_PRIVATE_KEY."
+              exit 1
+            }
+          fi
+
+          private_key_arg="$(cat "$key_file")"
+
           # Fetch signing files using explicit credentials.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --issuer-id "$issuer_id" \
             --key-id "$key_id" \
-            --private-key "$key_file"
+            --private-key "$private_key_arg"
           keychain add-certificates
           xcode-project use-profiles
 
