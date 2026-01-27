@@ -37,7 +37,28 @@ workflows:
       # - APP_STORE_CONNECT_PRIVATE_KEY  (contents of the .p8 file)
       - name: Set up keychain & signing (automatic)
         script: |
+          set -euo pipefail
           keychain initialize
+
+          # Normalize App Store Connect API private key (AuthKey_*.p8).
+          # Codemagic CLI expects a PEM encoded key. If the key is pasted as a single line
+          # or with escaped/newline issues, this reformats it to a valid PEM.
+          raw_key="${APP_STORE_CONNECT_PRIVATE_KEY:-}"
+          if [[ -z "$raw_key" ]]; then
+            echo "APP_STORE_CONNECT_PRIVATE_KEY is empty. Check Codemagic Environment variables (group: appstore)."
+            exit 1
+          fi
+
+          # Convert any literal '\n' to real newlines and drop CR.
+          raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
+
+          if echo "$raw_key" | grep -q "BEGIN PRIVATE KEY"; then
+            # Rebuild PEM with clean base64 body and standard line wraps.
+            body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
+            pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
+            export APP_STORE_CONNECT_PRIVATE_KEY="$(printf "%b" "$pem")"
+          fi
+
           app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
