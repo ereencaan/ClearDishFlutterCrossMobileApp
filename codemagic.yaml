@@ -1,0 +1,58 @@
+workflows:
+  ios_testflight:
+    name: iOS - Build & Upload to TestFlight (no local Mac)
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        # Must match `ios/Runner.xcodeproj` settings.
+        BUNDLE_ID: "com.hitratech.cleardish"
+        # Optional: if you want to override pubspec versioning.
+        # BUILD_NAME: "1.0.0"
+        # BUILD_NUMBER: "2"
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+        - pattern: ereen
+          include: true
+          source: true
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      # Codemagic automatic code signing via App Store Connect API key.
+      # Requires setting the following secrets in Codemagic UI:
+      # - APP_STORE_CONNECT_KEY_IDENTIFIER
+      # - APP_STORE_CONNECT_ISSUER_ID
+      # - APP_STORE_CONNECT_PRIVATE_KEY  (contents of the .p8 file)
+      - name: Set up keychain & signing (automatic)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Build IPA
+        script: |
+          flutter build ipa --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        # Set to true only when you're ready for review automation (usually keep false initially).
+        submit_to_app_store: false
