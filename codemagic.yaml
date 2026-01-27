@@ -3,6 +3,9 @@ workflows:
     name: iOS - Build & Upload to TestFlight (no local Mac)
     max_build_duration: 60
     environment:
+      # Import variable group(s) from Codemagic UI (required for secrets in a group).
+      groups:
+        - appstore
       flutter: stable
       xcode: latest
       cocoapods: default
