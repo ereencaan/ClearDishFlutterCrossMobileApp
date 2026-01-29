@@ -47,11 +47,14 @@ workflows:
           # or with escaped/newline issues, this reformats it to a valid PEM.
           raw_key="${APP_STORE_CONNECT_PRIVATE_KEY:-}"
           raw_key_b64="${APP_STORE_CONNECT_PRIVATE_KEY_BASE64:-}"
+          key_source="plain"
 
           # If multiline secrets are problematic, allow providing the key as a single-line base64 value.
-          if [[ -z "$raw_key" && -n "$raw_key_b64" ]]; then
+          # Prefer base64 when present (some UIs truncate multiline secrets).
+          if [[ -n "$raw_key_b64" ]]; then
             raw_key_b64="$(echo "$raw_key_b64" | tr -d '\r\n ' )"
             raw_key="$(echo "$raw_key_b64" | base64 --decode 2>/dev/null || true)"
+            key_source="base64"
           fi
 
           if [[ -z "$raw_key" ]]; then
@@ -78,6 +81,14 @@ workflows:
           if echo "$raw_key" | grep -q "BEGIN PRIVATE KEY"; then
             # Rebuild PEM with clean base64 body and standard line wraps.
             body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
+            # If the plain env var got truncated (body empty), but base64 is available, retry from base64.
+            if [[ ${#body} -eq 0 && -n "$raw_key_b64" && "$key_source" != "base64" ]]; then
+              raw_key_b64="$(echo "$raw_key_b64" | tr -d '\r\n ' )"
+              raw_key="$(echo "$raw_key_b64" | base64 --decode 2>/dev/null || true)"
+              raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
+              body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
+              key_source="base64"
+            fi
             if [[ ${#body} -lt 1000 ]]; then
               echo "Private key looks truncated (body length: ${#body})."
               echo "Re-download the AuthKey_*.p8 from App Store Connect (Keys) and paste the FULL file contents."
@@ -103,6 +114,7 @@ workflows:
           fi
 
           # Safe diagnostics (do not print key contents).
+          echo "Key source used: $key_source"
           echo "App Store Connect key file prepared: $(head -n 1 "$key_file" || true)"
           echo "Key stats: lines=$(wc -l < "$key_file" | tr -d ' '), bytes=$(wc -c < "$key_file" | tr -d ' ')"
           echo "Key footer: $(tail -n 1 "$key_file" || true)"
