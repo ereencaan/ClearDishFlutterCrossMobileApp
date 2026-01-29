@@ -118,15 +118,13 @@ workflows:
             }
           fi
 
-          private_key_arg="$(cat "$key_file")"
-
           # Fetch signing files using explicit credentials.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create \
             --issuer-id "$issuer_id" \
             --key-id "$key_id" \
-            --private-key "$private_key_arg"
+            --private-key "@file:$key_file"
           keychain add-certificates
           xcode-project use-profiles
 
@@ -134,16 +132,33 @@ workflows:
         script: |
           flutter build ipa --release
 
+      - name: Upload IPA to TestFlight
+        script: |
+          set -euo pipefail
+
+          issuer_id="${APP_STORE_CONNECT_ISSUER_ID:-${APP_STORE_CONNECT_ISSUER:-}}"
+          key_id="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-}}"
+          key_file="$HOME/authkey.p8"
+
+          if [[ -z "$issuer_id" || -z "$key_id" ]]; then
+            echo "Missing App Store Connect API credentials. Need ISSUER_ID and KEY_ID."
+            exit 1
+          fi
+
+          if [[ ! -s "$key_file" ]]; then
+            echo "Missing key file at $key_file (expected from previous step)."
+            exit 1
+          fi
+
+          # Upload and submit build to TestFlight (external testing can be enabled later if needed).
+          app-store-connect publish \
+            --testflight \
+            --issuer-id "$issuer_id" \
+            --key-id "$key_id" \
+            --private-key "@file:$key_file" \
+            --path "build/ios/ipa/*.ipa"
+
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
       - flutter_drive.log
-
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
-        # Set to true only when you're ready for review automation (usually keep false initially).
-        submit_to_app_store: false
