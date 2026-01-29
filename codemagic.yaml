@@ -49,6 +49,20 @@ workflows:
           raw_key_b64="${APP_STORE_CONNECT_PRIVATE_KEY_BASE64:-}"
           key_source="plain"
 
+          # Safe diagnostics (do not print secrets).
+          if [[ -n "$raw_key_b64" ]]; then
+            raw_key_b64_compact="$(echo "$raw_key_b64" | tr -d '\r\n ' )"
+            echo "APP_STORE_CONNECT_PRIVATE_KEY_BASE64 length: ${#raw_key_b64_compact}"
+            echo "APP_STORE_CONNECT_PRIVATE_KEY_BASE64 prefix: ${raw_key_b64_compact:0:24}"
+          else
+            echo "APP_STORE_CONNECT_PRIVATE_KEY_BASE64 not set"
+          fi
+          if [[ -n "$raw_key" ]]; then
+            echo "APP_STORE_CONNECT_PRIVATE_KEY is set (may be truncated by UI)"
+          else
+            echo "APP_STORE_CONNECT_PRIVATE_KEY not set"
+          fi
+
           # If multiline secrets are problematic, allow providing the key as a single-line base64 value.
           # Prefer base64 when present (some UIs truncate multiline secrets).
           if [[ -n "$raw_key_b64" ]]; then
@@ -66,6 +80,7 @@ workflows:
 
           # Convert any literal '\n' to real newlines and drop CR.
           raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
+          echo "Decoded key bytes (after normalization): $(printf "%s" "$raw_key" | wc -c | tr -d ' ')"
 
           issuer_id="${APP_STORE_CONNECT_ISSUER_ID:-${APP_STORE_CONNECT_ISSUER:-}}"
           key_id="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-}}"
@@ -91,7 +106,10 @@ workflows:
             fi
             if [[ ${#body} -lt 1000 ]]; then
               echo "Private key looks truncated (body length: ${#body})."
-              echo "Re-download the AuthKey_*.p8 from App Store Connect (Keys) and paste the FULL file contents."
+              echo "Key source used: $key_source"
+              echo "If key_source=base64: your APP_STORE_CONNECT_PRIVATE_KEY_BASE64 value is wrong or got truncated in Codemagic."
+              echo "Fix: re-generate base64 from the .p8 file and paste the full one-line output (no quotes)."
+              echo "Or re-download/rotate the AuthKey_*.p8 in App Store Connect and repeat."
               exit 1
             fi
             pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
