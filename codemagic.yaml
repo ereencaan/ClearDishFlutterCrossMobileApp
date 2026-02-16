@@ -8,7 +8,7 @@ workflows:
     name: iOS - Build & Upload to TestFlight (no local Mac)
     max_build_duration: 60
     integrations:
-      app_store_connect:
+      app_store_connect: ClearDish AppStore
     environment:
       flutter: stable
       xcode: latest
