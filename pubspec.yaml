@@ -1,7 +1,7 @@
 name: cleardish
 description: ClearDish - Cross-platform Flutter App for allergen and diet filtering
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -52,7 +52,20 @@ dev_dependencies:
   # Testing
   mockito: ^5.4.4
 
+  # Launcher icon (must match Play Store listing icon)
+  flutter_launcher_icons: ^0.14.4
+
 flutter:
   uses-material-design: true
   assets:
     - assets/branding/logo.png
+    - assets/branding/app_icon.png
+
+# Launcher icon: use ICON ONLY (no "ClearDish" text) so it matches Play Store. Same image in Console store listing.
+# Add assets/branding/app_icon.png = circle with heart + fork/spoon only, 512x512 or 1024x1024. Run: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true

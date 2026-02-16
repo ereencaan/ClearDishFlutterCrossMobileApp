@@ -47,6 +47,13 @@ app.*.map.json
 .env
 .env.local
 
+# App Store Connect key (local use only; do not commit)
+p8_base64.txt
+**/p8_base64.txt
+AuthKey_clean.p8
+**/AuthKey_clean.p8
+**/*.p8
+
 # Generated files
 *.g.dart
 *.freezed.dart

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// BrandLogo shows the ClearDish logo image and wordmark side-by-side.
-/// Place assets/branding/logo.png (preferably 1024x1024) in the project.
+/// BrandLogo shows the ClearDish icon (textless) and optional wordmark.
+/// Uses assets/branding/app_icon.png (icon only) everywhere for consistency with launcher and Play Store.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({super.key, this.size = 42, this.showText = true});
   final double size;
@@ -14,7 +14,7 @@ class BrandLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Image.asset(
-          'assets/branding/logo.png',
+          'assets/branding/app_icon.png',
           height: size,
         ),
         if (showText) ...[

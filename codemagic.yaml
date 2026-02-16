@@ -1,20 +1,21 @@
+# iOS signing: use Codemagic UI (Integrations + Code signing identities).
+# Do NOT use fetch-signing-files --create in a script; that causes
+# "Cannot save Signing Certificates without certificate private key".
+# Instead: add API key in Integrations, then Create certificate in Code signing identities.
+# See IOS_CODEMAGIC_SIGNING.md for step-by-step setup.
 workflows:
   ios_testflight:
     name: iOS - Build & Upload to TestFlight (no local Mac)
     max_build_duration: 60
+    integrations:
+      app_store_connect:
     environment:
-      # Import variable group(s) from Codemagic UI (required for secrets in a group).
-      groups:
-        - appstore
       flutter: stable
       xcode: latest
       cocoapods: default
-      vars:
-        # Must match `ios/Runner.xcodeproj` settings.
-        BUNDLE_ID: "com.hitratech.cleardish"
-        # Optional: if you want to override pubspec versioning.
-        # BUILD_NAME: "1.0.0"
-        # BUILD_NUMBER: "2"
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.hitratech.cleardish
     triggering:
       events:
         - push
@@ -30,169 +31,19 @@ workflows:
         script: |
           flutter pub get
 
-      # Codemagic automatic code signing via App Store Connect API key.
-      # Requires setting the following secrets in Codemagic UI:
-      # - APP_STORE_CONNECT_KEY_IDENTIFIER
-      # - APP_STORE_CONNECT_ISSUER_ID
-      # - APP_STORE_CONNECT_PRIVATE_KEY  (contents of the .p8 file)
-      # Optional: base64 of .p8 (if Codemagic truncates, use PART1 + PART2 below).
-      # - APP_STORE_CONNECT_PRIVATE_KEY_BASE64 (full base64, or first chunk)
-      # - APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 (second chunk; paste rest of base64 here)
-      - name: Set up keychain & signing (automatic)
-        script: |
-          set -euo pipefail
-          keychain initialize
-
-          # Normalize App Store Connect API private key (AuthKey_*.p8).
-          raw_key="${APP_STORE_CONNECT_PRIVATE_KEY:-}"
-          part1="$(echo "${APP_STORE_CONNECT_PRIVATE_KEY_BASE64:-}" | tr -d '\r\n ')"
-          part2="$(echo "${APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2:-}" | tr -d '\r\n ')"
-          # If single BASE64 is too short (Codemagic may truncate ~344 chars), use PART1+PART2.
-          if [[ ${#part1} -ge 2000 ]]; then
-            raw_key_b64="$part1"
-            key_source="base64"
-          elif [[ -n "$part1" && -n "$part2" ]]; then
-            raw_key_b64="${part1}${part2}"
-            key_source="base64_split"
-          else
-            raw_key_b64="$part1"
-            key_source="base64"
-          fi
-
-          echo "Key source: $key_source, combined base64 length: ${#raw_key_b64}"
-
-          if [[ -n "$raw_key" ]]; then
-            echo "APP_STORE_CONNECT_PRIVATE_KEY is set (may be truncated)"
-          fi
-
-          # Use base64 key when available.
-          if [[ -n "$raw_key_b64" ]]; then
-            raw_key="$(echo "$raw_key_b64" | base64 --decode 2>/dev/null || true)"
-          fi
-
-          if [[ -z "$raw_key" ]]; then
-            echo "Missing App Store Connect private key."
-            echo "Set either APP_STORE_CONNECT_PRIVATE_KEY (full AuthKey_*.p8 contents including BEGIN/END lines),"
-            echo "or APP_STORE_CONNECT_PRIVATE_KEY_BASE64 (base64 of the AuthKey_*.p8 file)."
-            exit 1
-          fi
-
-          # Convert any literal '\n' to real newlines and drop CR.
-          raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
-          echo "Decoded key bytes (after normalization): $(printf "%s" "$raw_key" | wc -c | tr -d ' ')"
-
-          issuer_id="${APP_STORE_CONNECT_ISSUER_ID:-${APP_STORE_CONNECT_ISSUER:-}}"
-          key_id="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-}}"
-          if [[ -z "$issuer_id" || -z "$key_id" ]]; then
-            echo "Missing App Store Connect API credentials. Need ISSUER_ID and KEY_ID."
-            echo "Set either APP_STORE_CONNECT_ISSUER_ID + APP_STORE_CONNECT_KEY_IDENTIFIER (recommended),"
-            echo "or APP_STORE_CONNECT_ISSUER_ID + APP_STORE_CONNECT_KEY_ID."
-            exit 1
-          fi
-
-          # Write a private key file for the CLI (avoids multiline/env parsing issues).
-          key_file="$HOME/authkey.p8"
-          if echo "$raw_key" | grep -q "BEGIN PRIVATE KEY"; then
-            # Rebuild PEM with clean base64 body and standard line wraps.
-            body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
-            # If the plain env var got truncated (body empty), but base64 is available, retry from base64.
-            if [[ ${#body} -eq 0 && -n "$raw_key_b64" && "$key_source" != "base64" ]]; then
-              raw_key_b64="$(echo "$raw_key_b64" | tr -d '\r\n ' )"
-              raw_key="$(echo "$raw_key_b64" | base64 --decode 2>/dev/null || true)"
-              raw_key="$(printf "%b" "$raw_key" | tr -d '\r')"
-              body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
-              key_source="base64"
-            fi
-            # Apple API keys can be EC (ECDSA) ~150-200 chars body or RSA ~1700. Accept both.
-            if [[ ${#body} -lt 100 ]]; then
-              # body empty but raw_key has content: decoded PEM may have line-ending issues; write as-is.
-              if [[ ${#body} -eq 0 && $(printf "%s" "$raw_key" | wc -c) -gt 200 ]]; then
-                printf "%b" "$raw_key" > "$key_file"
-                echo "Written decoded PEM as-is (sed could not extract body)."
-              else
-                echo "Private key looks truncated (body length: ${#body})."
-                echo "Key source: $key_source. Add APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 if using split base64."
-                exit 1
-              fi
-            else
-              pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
-              printf "%b" "$pem" > "$key_file"
-            fi
-          else
-            # If user pasted base64 (or one-line key), try to decode to DER and convert to PEM.
-            maybe_b64="$(echo "$raw_key" | tr -d '\n ' )"
-            if echo "$maybe_b64" | grep -Eq '^[A-Za-z0-9+/=]+$'; then
-              der_file="$HOME/authkey.der"
-              echo "$maybe_b64" | base64 --decode > "$der_file" || true
-              if command -v openssl >/dev/null 2>&1; then
-                # Convert PKCS8 DER to PEM (unencrypted).
-                openssl pkcs8 -inform DER -in "$der_file" -outform PEM -nocrypt -out "$key_file" || true
-              fi
-            fi
-            # Fallback: write raw as-is.
-            if [[ ! -s "$key_file" ]]; then
-              printf "%b" "$raw_key" > "$key_file"
-            fi
-          fi
-
-          # Safe diagnostics (do not print key contents).
-          echo "Key source used: $key_source"
-          echo "App Store Connect key file prepared: $(head -n 1 "$key_file" || true)"
-          echo "Key stats: lines=$(wc -l < "$key_file" | tr -d ' '), bytes=$(wc -c < "$key_file" | tr -d ' ')"
-          echo "Key footer: $(tail -n 1 "$key_file" || true)"
-
-          # Validate private key file (do not print key contents).
-          if command -v openssl >/dev/null 2>&1; then
-            openssl pkey -in "$key_file" -noout >/dev/null 2>&1 || {
-              echo "Private key is still not a valid PEM key (openssl failed)."
-              echo "This almost always means: wrong value pasted (not the .p8 file) or the key got truncated."
-              echo "Fix: create/download a NEW AuthKey_*.p8 in App Store Connect, then paste the FULL file contents,"
-              echo "or set APP_STORE_CONNECT_PRIVATE_KEY_BASE64 instead."
-              exit 1
-            }
-          fi
-
-          # Fetch signing files using explicit credentials.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create \
-            --issuer-id "$issuer_id" \
-            --key-id "$key_id" \
-            --private-key "@file:$key_file"
-          keychain add-certificates
-          xcode-project use-profiles
+      - name: Set up code signing settings on Xcode project
+        script: xcode-project use-profiles
 
       - name: Build IPA
         script: |
           flutter build ipa --release
 
-      - name: Upload IPA to TestFlight
-        script: |
-          set -euo pipefail
-
-          issuer_id="${APP_STORE_CONNECT_ISSUER_ID:-${APP_STORE_CONNECT_ISSUER:-}}"
-          key_id="${APP_STORE_CONNECT_KEY_IDENTIFIER:-${APP_STORE_CONNECT_KEY_ID:-}}"
-          key_file="$HOME/authkey.p8"
-
-          if [[ -z "$issuer_id" || -z "$key_id" ]]; then
-            echo "Missing App Store Connect API credentials. Need ISSUER_ID and KEY_ID."
-            exit 1
-          fi
-
-          if [[ ! -s "$key_file" ]]; then
-            echo "Missing key file at $key_file (expected from previous step)."
-            exit 1
-          fi
-
-          # Upload and submit build to TestFlight (external testing can be enabled later if needed).
-          app-store-connect publish \
-            --testflight \
-            --issuer-id "$issuer_id" \
-            --key-id "$key_id" \
-            --private-key "@file:$key_file" \
-            --path "build/ios/ipa/*.ipa"
-
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
       - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
