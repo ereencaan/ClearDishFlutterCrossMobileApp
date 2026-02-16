@@ -38,10 +38,20 @@ workflows:
         script: |
           flutter build ipa --release
 
+      - name: Prepare IPA for publishing
+        script: |
+          set -e
+          echo "IPA output:"
+          ls -la build/ios/ipa/ || true
+          if [ -n "${CM_EXPORT_DIR:-}" ]; then
+            mkdir -p "$CM_EXPORT_DIR"
+            cp -v build/ios/ipa/*.ipa "$CM_EXPORT_DIR/" || true
+            echo "CM_EXPORT_DIR contents:"
+            ls -la "$CM_EXPORT_DIR/" || true
+          fi
+
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
-      - flutter_drive.log
 
     publishing:
       app_store_connect:
