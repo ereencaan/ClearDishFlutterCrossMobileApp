@@ -105,12 +105,19 @@ workflows:
             fi
             # Apple API keys can be EC (ECDSA) ~150-200 chars body or RSA ~1700. Accept both.
             if [[ ${#body} -lt 100 ]]; then
-              echo "Private key looks truncated (body length: ${#body})."
-              echo "Key source: $key_source. Add APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 if using split base64."
-              exit 1
+              # body empty but raw_key has content: decoded PEM may have line-ending issues; write as-is.
+              if [[ ${#body} -eq 0 && $(printf "%s" "$raw_key" | wc -c) -gt 200 ]]; then
+                printf "%b" "$raw_key" > "$key_file"
+                echo "Written decoded PEM as-is (sed could not extract body)."
+              else
+                echo "Private key looks truncated (body length: ${#body})."
+                echo "Key source: $key_source. Add APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 if using split base64."
+                exit 1
+              fi
+            else
+              pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
+              printf "%b" "$pem" > "$key_file"
             fi
-            pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
-            printf "%b" "$pem" > "$key_file"
           else
             # If user pasted base64 (or one-line key), try to decode to DER and convert to PEM.
             maybe_b64="$(echo "$raw_key" | tr -d '\n ' )"
