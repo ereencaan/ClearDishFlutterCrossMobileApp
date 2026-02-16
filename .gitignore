@@ -86,3 +86,6 @@ key.properties
 *.bak
 *.cache
 flutter/
+# Keep ios/Flutter (Xcode configs) - do not ignore (flutter/ would ignore on case-insensitive FS)
+!ios/Flutter/
+!ios/Flutter/*.xcconfig
