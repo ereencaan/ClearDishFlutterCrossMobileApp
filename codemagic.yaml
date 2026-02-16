@@ -103,10 +103,10 @@ workflows:
               body="$(echo "$raw_key" | sed -e '1,/BEGIN PRIVATE KEY/d' -e '/END PRIVATE KEY/,$d' | tr -d '\n ' )"
               key_source="base64"
             fi
-            if [[ ${#body} -lt 1000 ]]; then
+            # Apple API keys can be EC (ECDSA) ~150-200 chars body or RSA ~1700. Accept both.
+            if [[ ${#body} -lt 100 ]]; then
               echo "Private key looks truncated (body length: ${#body})."
-              echo "Key source: $key_source. Codemagic may truncate long env vars."
-              echo "Fix: add APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 in Codemagic and paste the REST of the base64 (first ~340 chars in PART1, rest in PART2)."
+              echo "Key source: $key_source. Add APP_STORE_CONNECT_PRIVATE_KEY_BASE64_PART2 if using split base64."
               exit 1
             fi
             pem="-----BEGIN PRIVATE KEY-----\n$(echo "$body" | fold -w 64)\n-----END PRIVATE KEY-----\n"
