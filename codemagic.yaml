@@ -32,11 +32,20 @@ workflows:
           flutter pub get
 
       - name: Set up code signing settings on Xcode project
-        script: xcode-project use-profiles
+        script: |
+          xcode-project use-profiles --export-options-plist="$HOME/export_options.plist"
+          ls -la "$HOME/export_options.plist" || true
 
       - name: Build IPA
         script: |
-          flutter build ipa --release
+          # use-profiles creates $HOME/export_options.plist; Flutter needs it for the export step
+          flutter build ipa --release --export-options-plist="$HOME/export_options.plist"
+
+      - name: Debug build output
+        script: |
+          echo "=== build/ contents ==="
+          find build -type f -name "*.ipa" 2>/dev/null || true
+          ls -la build/ios/ipa/ 2>/dev/null || ls -laR build/ios/ 2>/dev/null || true
 
       - name: Prepare IPA for publishing
         script: |
