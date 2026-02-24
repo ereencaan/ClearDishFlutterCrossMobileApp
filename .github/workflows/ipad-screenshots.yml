@@ -32,16 +32,19 @@ jobs:
       - name: List available iPad simulators
         run: xcrun simctl list devices available | grep -i "ipad" || true
 
-      - name: Boot iPad Pro 12.9" simulator
+      - name: Boot iPad Pro simulator (12.9" veya 13-inch)
         run: |
-          # 12.9" iPad Pro UUID'sini al (isim Xcode sürümüne göre değişir)
-          UUID=$(xcrun simctl list devices available | grep -E "iPad Pro.*12\.9" | head -1 | grep -oE '[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}' | head -1)
+          # 12.9" / 13-inch iPad Pro (Xcode'da bazen "iPad Pro 13-inch (M4)" olur)
+          UUID=$(xcrun simctl list devices available | grep -E "iPad Pro.*(12\.9|13-inch)" | head -1 | grep -oE '[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}' | head -1)
           if [ -z "$UUID" ]; then
-            echo "iPad Pro 12.9 bulunamadı. Tüm cihazlar:"
+            UUID=$(xcrun simctl list devices available | grep "iPad Pro" | head -1 | grep -oE '[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}' | head -1)
+          fi
+          if [ -z "$UUID" ]; then
+            echo "iPad Pro bulunamadı. Tüm cihazlar:"
             xcrun simctl list devices available
             exit 1
           fi
-          echo "Booting iPad Pro 12.9 (UUID: $UUID)"
+          echo "Booting iPad Pro (UUID: $UUID)"
           xcrun simctl boot "$UUID" 2>/dev/null || true
           sleep 5
 
