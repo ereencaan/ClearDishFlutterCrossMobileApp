@@ -10,7 +10,7 @@ on:
 
 jobs:
   ipad-screenshots:
-    runs-on: macos-14  # Xcode 15+, iPad Pro 12.9" simülatörü var
+    runs-on: macos-15  # Xcode 16+ gerekli (in_app_purchase_storekit winBack API)
     timeout-minutes: 30
 
     steps:
