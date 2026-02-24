@@ -1,0 +1,77 @@
+# iPad Pro 12.9" ekran görüntüleri alır (App Store Connect için).
+# Repo public ise macOS dakikaları ücretsiz kotaya dahildir.
+# Çalıştır: Actions → "iPad Screenshots" → Run workflow → Run
+# Bitince: Job'a tıkla → Artifacts → ipad-screenshots indir.
+
+name: iPad Screenshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipad-screenshots:
+    runs-on: macos-14  # Xcode 15+, iPad Pro 12.9" simülatörü var
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build iOS (simulator)
+        run: flutter build ios --simulator --no-codesign
+
+      - name: List available iPad simulators
+        run: xcrun simctl list devices available | grep -i "ipad" || true
+
+      - name: Boot iPad Pro 12.9" simulator
+        run: |
+          # 12.9" iPad Pro UUID'sini al (isim Xcode sürümüne göre değişir)
+          UUID=$(xcrun simctl list devices available | grep -E "iPad Pro.*12\.9" | head -1 | grep -oE '[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}' | head -1)
+          if [ -z "$UUID" ]; then
+            echo "iPad Pro 12.9 bulunamadı. Tüm cihazlar:"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Booting iPad Pro 12.9 (UUID: $UUID)"
+          xcrun simctl boot "$UUID" 2>/dev/null || true
+          sleep 5
+
+      - name: Install app on simulator
+        run: |
+          APP_PATH=$(find build/ios -name "Runner.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Runner.app bulunamadı"
+            find build -name "*.app" -type d
+            exit 1
+          fi
+          echo "Installing: $APP_PATH"
+          xcrun simctl install booted "$APP_PATH"
+
+      - name: Launch app and take screenshots
+        run: |
+          xcrun simctl launch booted com.hitratech.cleardish
+          sleep 8
+          mkdir -p screenshots
+          xcrun simctl io booted screenshot screenshots/ipad-12.9-1.png
+          sleep 3
+          xcrun simctl io booted screenshot screenshots/ipad-12.9-2.png
+          sleep 2
+          xcrun simctl io booted screenshot screenshots/ipad-12.9-3.png
+          echo "Screenshots:"
+          ls -la screenshots/
+
+      - name: Upload iPad screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipad-screenshots
+          path: screenshots/
+          retention-days: 30
