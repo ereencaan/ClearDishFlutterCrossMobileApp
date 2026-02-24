@@ -62,21 +62,21 @@ jobs:
       - name: Launch app and take screenshots (3 different screens)
         run: |
           mkdir -p screenshots
-          # -e KEY VALUE must come before "booted", else simctl treats -e as app argument
+          # -e KEY=value (single arg) so device "booted" is not misparsed as device "-e"
           # 1) Welcome
-          xcrun simctl launch -e INITIAL_LOCATION /welcome booted com.hitratech.cleardish
+          xcrun simctl launch -e INITIAL_LOCATION=/welcome booted com.hitratech.cleardish
           sleep 8
           xcrun simctl io booted screenshot screenshots/ipad-12.9-1.png
           xcrun simctl terminate booted com.hitratech.cleardish
           sleep 2
           # 2) Login
-          xcrun simctl launch -e INITIAL_LOCATION /login/user booted com.hitratech.cleardish
+          xcrun simctl launch -e INITIAL_LOCATION=/login/user booted com.hitratech.cleardish
           sleep 8
           xcrun simctl io booted screenshot screenshots/ipad-12.9-2.png
           xcrun simctl terminate booted com.hitratech.cleardish
           sleep 2
           # 3) Onboarding
-          xcrun simctl launch -e INITIAL_LOCATION /onboarding booted com.hitratech.cleardish
+          xcrun simctl launch -e INITIAL_LOCATION=/onboarding booted com.hitratech.cleardish
           sleep 8
           xcrun simctl io booted screenshot screenshots/ipad-12.9-3.png
           xcrun simctl terminate booted com.hitratech.cleardish
