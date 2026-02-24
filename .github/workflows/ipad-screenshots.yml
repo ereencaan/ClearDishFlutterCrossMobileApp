@@ -56,16 +56,26 @@ jobs:
           echo "Installing: $APP_PATH"
           xcrun simctl install booted "$APP_PATH"
 
-      - name: Launch app and take screenshots
+      - name: Launch app and take screenshots (3 different screens)
         run: |
-          xcrun simctl launch booted com.hitratech.cleardish
-          sleep 8
           mkdir -p screenshots
+          # 1) Welcome
+          xcrun simctl launch booted -e INITIAL_LOCATION /welcome com.hitratech.cleardish
+          sleep 8
           xcrun simctl io booted screenshot screenshots/ipad-12.9-1.png
-          sleep 3
-          xcrun simctl io booted screenshot screenshots/ipad-12.9-2.png
+          xcrun simctl terminate booted com.hitratech.cleardish
           sleep 2
+          # 2) Login
+          xcrun simctl launch booted -e INITIAL_LOCATION /login/user com.hitratech.cleardish
+          sleep 8
+          xcrun simctl io booted screenshot screenshots/ipad-12.9-2.png
+          xcrun simctl terminate booted com.hitratech.cleardish
+          sleep 2
+          # 3) Onboarding
+          xcrun simctl launch booted -e INITIAL_LOCATION /onboarding com.hitratech.cleardish
+          sleep 8
           xcrun simctl io booted screenshot screenshots/ipad-12.9-3.png
+          xcrun simctl terminate booted com.hitratech.cleardish
           echo "Screenshots:"
           ls -la screenshots/
 

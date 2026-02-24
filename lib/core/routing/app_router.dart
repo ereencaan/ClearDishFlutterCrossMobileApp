@@ -30,9 +30,10 @@ import 'package:cleardish/features/onboarding/presentation/onboarding_screen.dar
 /// Application router configuration
 ///
 /// Handles navigation and route management using go_router.
+/// [initialLocation] can be set via INITIAL_LOCATION env (e.g. for screenshot workflows).
 final class AppRouter {
-  static final GoRouter router = GoRouter(
-    initialLocation: '/welcome',
+  static GoRouter createRouter({String initialLocation = '/welcome'}) => GoRouter(
+    initialLocation: initialLocation,
     routes: [
       GoRoute(
         path: '/welcome',
@@ -264,4 +265,6 @@ final class AppRouter {
       return null;
     },
   );
+
+  static final GoRouter router = createRouter();
 }
